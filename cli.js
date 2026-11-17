@@ -23,21 +23,14 @@ Usage:
   pairing item move "<project>" "<checklist>" "<item>" <up|down>
   pairing item delete "<project>" "<checklist>" "<item>"
   pairing loop set "<project>" "<step or 1-8>"
-  pairing research begin "<project>" "<problem statement>"
-  pairing research add "<project>" "<kind>" "<title>" "<explanation>" [options]
-  pairing research confirm "<project>"
-  pairing research skip "<project>" "<reason>"
-  pairing research list "<project>"
+  pairing understanding set "<project>" "<summary>"
+  pairing understanding confirm "<project>"
+  pairing understanding show "<project>"
+  pairing project depth "<project>" <concise|standard|deep>
   pairing projects
   pairing export "<file.json>"
   pairing import "<file.json>"
   pairing data-path
-
-Research kinds: finding, question, decision, no-research-needed
-Research add options:
-  --source "<label>|<url or path>"   repeatable, required for findings
-  --confidence <high|medium|low>
-  --link <checklist item id>        repeatable
 
 The dashboard server must be running at ${DEFAULT_BASE_URL}.`
 
@@ -47,93 +40,6 @@ function requireArguments(args, count, usage) {
     }
 
     return args
-}
-
-function parseSourceArgument(value) {
-    const separatorIndex = value.indexOf('|')
-
-    if (separatorIndex <= 0 || separatorIndex === value.length - 1) {
-        throw new Error(
-            'A research source must use the format "<label>|<url or path>"'
-        )
-    }
-
-    return {
-        label: value.slice(0, separatorIndex).trim(),
-        location: value.slice(separatorIndex + 1).trim()
-    }
-}
-
-function parseResearchAddArguments(args) {
-    const positional = []
-    const sources = []
-    const relatedItemIds = []
-    let confidence = 'medium'
-
-    for (let index = 0; index < args.length; index += 1) {
-        const argument = args[index]
-
-        if (argument === '--source') {
-            const value = args[index + 1]
-
-            if (!value) {
-                throw new Error('--source requires a value')
-            }
-
-            sources.push(parseSourceArgument(value))
-            index += 1
-            continue
-        }
-
-        if (argument === '--confidence') {
-            const value = args[index + 1]
-
-            if (!value) {
-                throw new Error('--confidence requires a value')
-            }
-
-            confidence = value
-            index += 1
-            continue
-        }
-
-        if (argument === '--link') {
-            const value = args[index + 1]
-
-            if (!value) {
-                throw new Error('--link requires a value')
-            }
-
-            relatedItemIds.push(value)
-            index += 1
-            continue
-        }
-
-        if (argument.startsWith('--')) {
-            throw new Error(`Unknown research option: ${argument}`)
-        }
-
-        positional.push(argument)
-    }
-
-    if (positional.length !== 4) {
-        throw new Error(
-            'research add requires a project, kind, title, and explanation'
-        )
-    }
-
-    return {
-        type: 'research.add',
-        payload: {
-            project: positional[0],
-            kind: positional[1],
-            title: positional[2],
-            explanation: positional[3],
-            sources,
-            confidence,
-            relatedItemIds
-        }
-    }
 }
 
 function parseCommand(args) {
@@ -209,6 +115,18 @@ function parseCommand(args) {
             return {
                 type: 'project.delete',
                 payload: { nameOrId }
+            }
+        }
+
+        if (operation === 'depth') {
+            const [project, depth] = requireArguments(
+                args.slice(2),
+                2,
+                'a project and depth (concise, standard, or deep)'
+            )
+            return {
+                type: 'project.depth',
+                payload: { project, depth }
             }
         }
     }
@@ -355,23 +273,19 @@ function parseCommand(args) {
         }
     }
 
-    if (args[0] === 'research') {
+    if (args[0] === 'understanding') {
         const operation = args[1]
 
-        if (operation === 'begin') {
-            const [project, problem] = requireArguments(
+        if (operation === 'set') {
+            const [project, summary] = requireArguments(
                 args.slice(2),
                 2,
-                'a project and problem statement'
+                'a project and a summary'
             )
             return {
-                type: 'research.begin',
-                payload: { project, problem }
+                type: 'understanding.set',
+                payload: { project, summary }
             }
-        }
-
-        if (operation === 'add') {
-            return parseResearchAddArguments(args.slice(2))
         }
 
         if (operation === 'confirm') {
@@ -381,31 +295,19 @@ function parseCommand(args) {
                 'a project'
             )
             return {
-                type: 'research.confirm',
+                type: 'understanding.confirm',
                 payload: { project }
             }
         }
 
-        if (operation === 'skip') {
-            const [project, reason] = requireArguments(
-                args.slice(2),
-                2,
-                'a project and a skip reason'
-            )
-            return {
-                type: 'research.skip',
-                payload: { project, reason }
-            }
-        }
-
-        if (operation === 'list') {
+        if (operation === 'show') {
             const [project] = requireArguments(
                 args.slice(2),
                 1,
                 'a project'
             )
             return {
-                kind: 'research-list',
+                kind: 'understanding-show',
                 payload: { project }
             }
         }
@@ -445,14 +347,15 @@ function formatState(state) {
             `Step ${project.currentLoopStep + 1}`
         lines.push(`- ${project.name}${activeMarker} — ${step}`)
 
-        const round = project.research?.rounds?.find(
-            (candidate) => candidate.id === project.research.activeRoundId
+        const understanding = project.understanding
+        lines.push(
+            `  Depth: ${project.depth} · Understanding: ${understanding.status}`
         )
 
-        if (round) {
-            lines.push(
-                `  Research: ${round.status} — ${round.problem}`
-            )
+        if (understanding.summary) {
+            for (const line of understanding.summary.split('\n')) {
+                lines.push(`    ${line}`)
+            }
         }
 
         for (const checklist of project.checklists) {
@@ -478,47 +381,23 @@ function formatProjects(state) {
     return state.projects
         .map((project) => {
             const activeMarker = project.id === state.activeProjectId ? ' *' : ''
-            const round = project.research?.rounds?.find(
-                (candidate) => candidate.id === project.research.activeRoundId
-            )
-            const researchLabel = round ? ` — research ${round.status}` : ''
-            return `${project.name}${activeMarker}${researchLabel}`
+            const understanding = project.understanding
+            return `${project.name}${activeMarker} — ${project.depth}, understanding ${understanding.status}`
         })
         .join('\n')
 }
 
-function formatResearch(project) {
-    const rounds = project.research?.rounds ?? []
+function formatUnderstanding(project) {
+    const understanding = project.understanding
 
-    if (rounds.length === 0) {
-        return `No research rounds for ${project.name} yet.`
+    if (!understanding.summary) {
+        return `No understanding summary for ${project.name} yet.`
     }
 
-    const lines = [`Research rounds for ${project.name}:`]
-
-    for (const round of rounds) {
-        lines.push(`- [${round.status}] ${round.problem}`)
-
-        if (round.reason) {
-            lines.push(`  Reason: ${round.reason}`)
-        }
-
-        for (const entry of round.entries) {
-            lines.push(
-                `  - ${entry.kind}: ${entry.title} (${entry.confidence})`
-            )
-
-            if (entry.explanation) {
-                lines.push(`    ${entry.explanation}`)
-            }
-
-            for (const source of entry.sources) {
-                lines.push(`    source: ${source.label} — ${source.location}`)
-            }
-        }
-    }
-
-    return lines.join('\n')
+    return [
+        `Understanding for ${project.name} (${understanding.status}, depth ${project.depth}):`,
+        understanding.summary
+    ].join('\n')
 }
 
 function stripServerMetadata(state) {
@@ -605,11 +484,11 @@ async function runCli(args, {
         return { kind: 'projects', state }
     }
 
-    if (command.kind === 'research-list') {
+    if (command.kind === 'understanding-show') {
         const state = await fetchState(fetchImpl, baseUrl)
         const project = findProjectByName(state, command.payload.project)
-        output(formatResearch(project))
-        return { kind: 'research-list', project }
+        output(formatUnderstanding(project))
+        return { kind: 'understanding-show', project }
     }
 
     if (command.kind === 'export') {
@@ -664,6 +543,6 @@ module.exports = {
     parseCommand,
     formatState,
     formatProjects,
-    formatResearch,
+    formatUnderstanding,
     runCli
 }

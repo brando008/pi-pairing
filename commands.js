@@ -15,11 +15,17 @@ const COMMAND_TYPES = new Set([
     'item.delete',
     'item.move',
     'loop.set',
+    'understanding.set',
+    'understanding.confirm',
+    'project.depth',
+    'state.replace'
+])
+
+const LEGACY_RESEARCH_COMMANDS = new Set([
     'research.begin',
     'research.add',
     'research.confirm',
-    'research.skip',
-    'state.replace'
+    'research.skip'
 ])
 
 function normalizeLookup(value) {
@@ -411,69 +417,39 @@ function replaceState(state, payload) {
     }
 }
 
-function beginResearch(state, payload) {
+function setUnderstanding(state, payload) {
     const project = findProject(state, payload.project)
-    Core.beginResearch(
-        state,
-        project.id,
-        payload.problem,
-        Core.createId('research-round')
-    )
-    const round = Core.getResearchRound(project)
+    Core.setUnderstanding(state, project.id, payload.summary ?? '')
 
     return {
         project,
-        round,
-        message: `Started research round "${round.problem}".`
+        understanding: project.understanding,
+        message:
+            project.understanding.status === 'empty'
+                ? 'Cleared the understanding summary.'
+                : 'Understanding summary saved. Waiting for confirmation.'
     }
 }
 
-function addResearchEntry(state, payload) {
+function confirmUnderstanding(state, payload) {
     const project = findProject(state, payload.project)
-    const kind = String(payload.kind ?? '').trim()
-
-    Core.addResearchEntry(state, project.id, {
-        id: Core.createId('research-entry'),
-        kind,
-        title: payload.title,
-        explanation: payload.explanation ?? '',
-        sources: payload.sources ?? [],
-        confidence: payload.confidence ?? 'medium',
-        relatedItemIds: payload.relatedItemIds ?? [],
-        createdAt: new Date().toISOString()
-    })
-
-    const round = Core.getResearchRound(project)
+    Core.confirmUnderstanding(state, project.id)
 
     return {
         project,
-        round,
-        message: `Recorded ${kind} "${payload.title}".`
+        understanding: project.understanding,
+        message: 'Understanding confirmed. Moving on to inspection.'
     }
 }
 
-function confirmResearch(state, payload) {
+function setDepth(state, payload) {
     const project = findProject(state, payload.project)
-    Core.confirmResearch(state, project.id)
-    const round = Core.getResearchRound(project)
+    Core.setProjectDepth(state, project.id, payload.depth)
 
     return {
         project,
-        round,
-        message: 'Research confirmed. Moving on to inspection.'
-    }
-}
-
-function skipResearch(state, payload) {
-    const project = findProject(state, payload.project)
-    const result = Core.skipResearch(state, project.id, payload.reason)
-    const round = Core.getResearchRound(project)
-
-    return {
-        project,
-        round,
-        warning: result.warning,
-        message: `Research skipped: ${payload.reason}`
+        depth: project.depth,
+        message: `Set ${project.name} teaching depth to ${project.depth}.`
     }
 }
 
@@ -492,16 +468,21 @@ const COMMAND_HANDLERS = Object.freeze({
     'item.delete': deleteItem,
     'item.move': moveItem,
     'loop.set': setLoopStep,
-    'research.begin': beginResearch,
-    'research.add': addResearchEntry,
-    'research.confirm': confirmResearch,
-    'research.skip': skipResearch,
+    'understanding.set': setUnderstanding,
+    'understanding.confirm': confirmUnderstanding,
+    'project.depth': setDepth,
     'state.replace': replaceState
 })
 
 function applyCommand(state, command) {
     if (!command || typeof command !== 'object') {
         throw new Error('Command must be an object')
+    }
+
+    if (LEGACY_RESEARCH_COMMANDS.has(command.type)) {
+        throw new Error(
+            'Research commands were replaced by understanding commands in v1.1.0. Use understanding.set and understanding.confirm.'
+        )
     }
 
     if (!COMMAND_TYPES.has(command.type)) {

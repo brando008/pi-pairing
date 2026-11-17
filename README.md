@@ -1,6 +1,6 @@
 # Pi Pairing
 
-**A research-first pair-programming companion for Pi.** It keeps a visible eight step engineering loop, a sourced research area, and your project checklists in one local dashboard that Pi and you can both update.
+**An understanding-first pair-programming companion for Pi.** It keeps a visible eight-step engineering loop, a short understanding checkpoint, and your project checklists in one local dashboard that Pi and you can both update.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -13,7 +13,7 @@ Most coding agents jump straight to an implementation. That is fast, but it teac
 Pi Pairing changes the order of work:
 
 1. **The problem is stated.** Scope and success criteria are written down.
-2. **The problem is researched.** Findings are recorded with real sources before any design happens.
+2. **The understanding is stated.** Pi summarizes what it thinks the problem is and how it proposes to approach it, so a misunderstanding is caught before any code moves.
 3. **The code is inspected.** The local architecture is explained in plain language.
 4. **The work is sliced** into small, verifiable steps.
 5. **You drive** while Pi navigates, coaches, and explains.
@@ -23,9 +23,9 @@ Pi Pairing changes the order of work:
 ## Features
 
 - **Eight-step pairing loop** with a per-project current position.
-- **A dedicated Research panel** with research rounds, findings, questions, decisions, sources, and confidence.
-- **An enforced research gate.** The loop cannot advance past Research until the round is confirmed or explicitly skipped with a recorded reason.
-- **Visible research skips.** A skipped round is warned about in the dashboard, the CLI, and the final recap.
+- **A dedicated Understanding panel** with one editable summary and a single confirmation.
+- **A lightweight checkpoint.** The loop cannot advance past Understanding until the summary is confirmed.
+- **Per-project teaching depth.** Concise, Standard, or Deep controls both the summary and the explanations, so complexity stays proportional to the learner.
 - **Project checklists** with items that can be added, completed, renamed, reordered, and deleted.
 - **A CLI** so Pi and you can update the dashboard from any directory.
 - **Live synchronization** over Server-Sent Events, with revision ordering so stale updates never overwrite newer work.
@@ -103,18 +103,18 @@ Pi will:
 1. Load the `pi-pairing` skill and its session guide.
 2. Ensure the dashboard server is running.
 3. Create or select the `campus` project and a `Current Work` checklist.
-4. Start a **research round** for the problem and record sourced findings.
-5. Present the research and wait for your confirmation.
+4. Write a short **understanding summary** and ask whether it matches your understanding.
+5. Wait for your confirmation (or record it automatically in autonomous mode).
 6. Inspect the repository and propose one small, testable step.
 7. Guide you through the change, then review and verify it.
-8. Recap what you learned, including any skipped research.
+8. Recap what you learned and what remains.
 
 ## The eight-step loop
 
 | Step | What happens |
 |---|---|
 | **Problem** | Goal, scope, constraints, and success criteria are written down. |
-| **Research** | The problem domain is investigated and findings are recorded with sources. |
+| **Understanding** | Pi states what it understands and the approach it proposes; you confirm or correct it. |
 | **Inspection and Explanation** | The relevant code is read and the local architecture is explained. |
 | **Steps** | The work is broken into small, independently verifiable slices. |
 | **Changes** | You implement; Pi navigates, coaches, and explains each change. |
@@ -122,17 +122,17 @@ Pi will:
 | **Review** | The diff is inspected and fresh verification is run against the final tree. |
 | **Recap** | The reasoning, evidence, and next step are reviewed together. |
 
-## The research gate
+## The understanding checkpoint
 
-Research is a phase with evidence, not a formality.
+The second step is a short summary, not a research project.
 
-- A research **round** belongs to one problem. Start a new round for each new problem; earlier rounds stay as project history.
-- A **finding** must have at least one source — a URL or a local file path.
-- **Questions** and **decisions** may be recorded without sources.
-- Pi cannot advance the loop past **Research** until the round is confirmed.
-- You can always skip research, but a reason is required and the skip is shown as a warning everywhere and mentioned in the recap.
+- Pi writes what it understands: the outcome, the proposed approach, assumptions, and anything still unclear.
+- You read it, correct it if needed, and confirm it.
+- Pi cannot advance the loop past **Understanding** until the summary is confirmed.
+- The summary is replaced for each new task, so it always describes the current work.
+- Pi may still read documentation or use web tools when they genuinely help, but that is a normal tool choice, not a mandatory phase.
 
-Research entries can be written by Pi through the CLI or by you in the dashboard.
+The summary is editable in the dashboard and through the CLI.
 
 ## CLI reference
 
@@ -157,16 +157,12 @@ pi-pairing item rename "Campus" "Current Work" "Inspect the handler" "Inspect th
 pi-pairing item move "Campus" "Current Work" "Inspect the handler" up
 pi-pairing item delete "Campus" "Current Work" "Inspect the handler"
 
-pi-pairing research begin "Campus" "How should corrections be recorded?"
-pi-pairing research add "Campus" finding "Corrections are append-only" \
-  "The audit specification forbids mutating closed records." \
-  --source "Audit specification|docs/audit.md" --confidence high
-pi-pairing research add "Campus" question "How long are records retained?" "Not answered yet."
-pi-pairing research list "Campus"
-pi-pairing research confirm "Campus"
-pi-pairing research skip "Campus" "Existing incident review covered this area"
+pi-pairing understanding set "Campus" "The endpoint should reject a missing student ID and keep valid records unchanged."
+pi-pairing understanding confirm "Campus"
+pi-pairing understanding show "Campus"
+pi-pairing project depth "Campus" concise
 
-pi-pairing loop set "Campus" Research
+pi-pairing loop set "Campus" Understanding
 pi-pairing loop set "Campus" "Inspection and Explanation"
 
 pi-pairing projects
@@ -209,7 +205,7 @@ no longer running.
 pi-pairing/
 ├── skills/pi-pairing/       # Installable Pi skill and session guide
 ├── scripts/                 # Install, uninstall, start, stop, unlock
-├── core.js                  # State model, research rules, and the gate
+├── core.js                  # State model, understanding rules, and the gate
 ├── commands.js              # Shared command layer
 ├── server.js                # Static, HTTP, and SSE server
 ├── state-store.js           # Atomic, locked persistence
@@ -234,7 +230,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and
 
 ## Roadmap
 
-- Reusable checklist and research templates.
+- Reusable checklist templates and depth presets.
 - Optional project discovery from a configured directory.
 - Encrypted state for shared machines.
 - Export to Markdown for pull-request notes.

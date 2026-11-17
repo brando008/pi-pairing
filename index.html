@@ -80,8 +80,8 @@
                     <ol id="loop-steps" class="loop-steps" role="list"></ol>
 
                     <p id="loop-gate-hint" class="loop-gate-hint" hidden>
-                        Research must be confirmed or explicitly skipped
-                        before the loop can move past Research.
+                        The understanding summary must be confirmed before
+                        the loop can move past Understanding.
                     </p>
 
                     <div class="loop-prompt" aria-live="polite">
@@ -92,163 +92,69 @@
 
                 <div class="work-column">
                     <section
-                        class="panel research-panel"
-                        aria-labelledby="research-title"
+                        class="panel understanding-panel"
+                        aria-labelledby="understanding-title"
                     >
                         <div class="panel-heading">
                             <div>
                                 <p class="eyebrow">Before we build</p>
-                                <h2 id="research-title">Research</h2>
+                                <h2 id="understanding-title">Understanding</h2>
                             </div>
-                            <span id="research-status" class="pill">No round</span>
+                            <span id="understanding-status" class="pill">
+                                Not started
+                            </span>
                         </div>
 
                         <p class="panel-intro">
-                            Pi researches the problem before planning the
-                            change. Record findings and sources, then confirm
-                            the checkpoint or skip it with a reason.
+                            Pi states what it understands about the problem.
+                            Read it, correct it if needed, then confirm it
+                            before the work moves on.
                         </p>
 
                         <div
-                            id="research-warning"
-                            class="research-warning"
+                            id="understanding-warning"
+                            class="understanding-warning"
                             role="status"
                             hidden
                         ></div>
 
-                        <form
-                            id="research-begin-form"
-                            class="research-begin-form"
-                        >
-                            <label class="field" for="research-problem-input">
-                                <span>Problem to research</span>
-                                <input
-                                    id="research-problem-input"
-                                    type="text"
-                                    autocomplete="off"
-                                    placeholder="What do we need to understand?"
-                                />
+                        <div class="understanding-controls">
+                            <label class="field" for="depth-select">
+                                <span>Teaching depth</span>
+                                <select id="depth-select">
+                                    <option value="concise">Concise</option>
+                                    <option value="standard" selected>
+                                        Standard
+                                    </option>
+                                    <option value="deep">Deep</option>
+                                </select>
                             </label>
+                        </div>
+
+                        <label class="field" for="understanding-input">
+                            <span>What Pi understands</span>
+                            <textarea
+                                id="understanding-input"
+                                rows="6"
+                                placeholder="Pi writes a short summary of the problem and the approach."
+                            ></textarea>
+                        </label>
+
+                        <div class="understanding-actions">
                             <button
-                                id="research-begin-button"
-                                class="button button-primary"
-                                type="submit"
+                                id="understanding-save-button"
+                                class="button"
+                                type="button"
                             >
-                                Begin research
+                                Save summary
                             </button>
-                        </form>
-
-                        <div id="research-round" class="research-round" hidden>
-                            <p id="research-round-problem" class="research-round-problem"></p>
-
-                            <div class="research-actions" role="group" aria-label="Research checkpoint actions">
-                                <button
-                                    id="research-confirm-button"
-                                    class="button button-primary"
-                                    type="button"
-                                >
-                                    Confirm research
-                                </button>
-                                <button
-                                    id="research-skip-button"
-                                    class="button button-danger-quiet"
-                                    type="button"
-                                >
-                                    Skip research
-                                </button>
-                                <button
-                                    id="research-new-round-button"
-                                    class="button"
-                                    type="button"
-                                >
-                                    New round
-                                </button>
-                            </div>
-
-                            <ul
-                                id="research-entries"
-                                class="research-entries"
-                                role="list"
-                            ></ul>
-
-                            <form
-                                id="research-add-form"
-                                class="research-add-form"
+                            <button
+                                id="understanding-confirm-button"
+                                class="button button-primary"
+                                type="button"
                             >
-                                <div class="research-add-grid">
-                                    <label class="field" for="research-kind">
-                                        <span>Kind</span>
-                                        <select id="research-kind">
-                                            <option value="finding">Finding</option>
-                                            <option value="question">Question</option>
-                                            <option value="decision">Decision</option>
-                                            <option value="no-research-needed">
-                                                No research needed
-                                            </option>
-                                        </select>
-                                    </label>
-
-                                    <label class="field" for="research-confidence">
-                                        <span>Confidence</span>
-                                        <select id="research-confidence">
-                                            <option value="high">High</option>
-                                            <option value="medium" selected>
-                                                Medium
-                                            </option>
-                                            <option value="low">Low</option>
-                                        </select>
-                                    </label>
-                                </div>
-
-                                <label class="field" for="research-title-input">
-                                    <span>Title</span>
-                                    <input
-                                        id="research-title-input"
-                                        type="text"
-                                        autocomplete="off"
-                                        placeholder="What did you learn?"
-                                    />
-                                </label>
-
-                                <label class="field" for="research-explanation-input">
-                                    <span>Explanation</span>
-                                    <textarea
-                                        id="research-explanation-input"
-                                        rows="3"
-                                        placeholder="What does this mean for the work?"
-                                    ></textarea>
-                                </label>
-
-                                <div class="research-add-grid">
-                                    <label class="field" for="research-source-label">
-                                        <span>Source label</span>
-                                        <input
-                                            id="research-source-label"
-                                            type="text"
-                                            autocomplete="off"
-                                            placeholder="Audit spec"
-                                        />
-                                    </label>
-
-                                    <label class="field" for="research-source-location">
-                                        <span>Source URL or path</span>
-                                        <input
-                                            id="research-source-location"
-                                            type="text"
-                                            autocomplete="off"
-                                            placeholder="https:// or docs/"
-                                        />
-                                    </label>
-                                </div>
-
-                                <button
-                                    id="research-add-button"
-                                    class="button button-primary"
-                                    type="submit"
-                                >
-                                    Add research entry
-                                </button>
-                            </form>
+                                Confirm understanding
+                            </button>
                         </div>
                     </section>
 

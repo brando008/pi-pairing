@@ -4,6 +4,31 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-11-17
+
+### Changed
+
+- **Research is now Understanding.** The second loop step is now a short summary
+  of what Pi understands and proposes, confirmed by you before the work moves
+  on. External research is no longer a mandatory phase.
+- The **Research panel** is now the **Understanding panel**: one editable
+  summary, one confirmation, and a teaching-depth selector.
+- The **research gate** is now the **understanding checkpoint**. The core still
+  prevents the loop from moving past Understanding until the summary is
+  confirmed.
+- Added a per-project **teaching depth** (`concise`, `standard`, `deep`) that
+  shapes both the summary and the explanations throughout the session.
+- The `research *` commands were replaced by `understanding set`, `understanding
+  confirm`, `understanding show`, and `project depth`. The old commands return
+  a clear migration message.
+
+### Added
+
+- State schema version 4 with automatic migration from versions 1, 2, and 3.
+  Version 3 research rounds are converted into an understanding summary.
+- A migration that preserves confirmed research rounds as confirmed
+  understanding summaries.
+
 ## [1.0.0] - 2026-11-17
 
 ### Added

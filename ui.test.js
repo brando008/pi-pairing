@@ -88,15 +88,15 @@ test('the browser reconnects when the server starts after the page', () => {
     assert.match(app, /setTimeout/)
 })
 
-test('the browser exposes the research checkpoint workflow', () => {
-    assert.match(app, /'research\.begin'/)
-    assert.match(app, /'research\.add'/)
-    assert.match(app, /'research\.confirm'/)
-    assert.match(app, /'research\.skip'/)
-    assert.match(html, /id="research-entries"/)
-    assert.match(html, /id="research-confirm-button"/)
-    assert.match(html, /id="research-skip-button"/)
-    assert.match(html, /id="research-warning"/)
+test('the browser exposes the understanding checkpoint workflow', () => {
+    assert.match(app, /'understanding\.set'/)
+    assert.match(app, /'understanding\.confirm'/)
+    assert.match(app, /'project\.depth'/)
+    assert.match(html, /id="understanding-input"/)
+    assert.match(html, /id="understanding-confirm-button"/)
+    assert.match(html, /id="understanding-save-button"/)
+    assert.match(html, /id="understanding-warning"/)
+    assert.match(html, /id="depth-select"/)
     assert.match(html, /id="loop-gate-hint"/)
 })
 

@@ -7,8 +7,8 @@
         root.PairingCore = api
     }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createPairingCore() {
-    const STORAGE_VERSION = 3
-    const LEGACY_STATE_VERSIONS = [1, 2]
+    const STORAGE_VERSION = 4
+    const LEGACY_STATE_VERSIONS = [1, 2, 3]
 
     const LOOP_STEPS = Object.freeze([
         Object.freeze({
@@ -16,9 +16,9 @@
             prompt: 'What are we trying to accomplish?'
         }),
         Object.freeze({
-            label: 'Research',
+            label: 'Understanding',
             prompt:
-                'What do we need to understand about the problem before we design a solution?'
+                'What do I understand about the problem, and what approach should we take?'
         }),
         Object.freeze({
             label: 'Inspection and Explanation',
@@ -46,25 +46,18 @@
         })
     ])
 
-    const RESEARCH_STEP_INDEX = LOOP_STEPS.findIndex(
-        (step) => step.label === 'Research'
+    const UNDERSTANDING_STEP_INDEX = LOOP_STEPS.findIndex(
+        (step) => step.label === 'Understanding'
     )
     const INSPECTION_STEP_INDEX = LOOP_STEPS.findIndex(
         (step) => step.label === 'Inspection and Explanation'
     )
 
-    const RESEARCH_KINDS = Object.freeze([
-        'finding',
-        'question',
-        'decision',
-        'no-research-needed',
-        'skipped'
-    ])
-    const RESEARCH_CONFIDENCE_LEVELS = Object.freeze(['high', 'medium', 'low'])
-    const RESEARCH_ROUND_STATUSES = Object.freeze([
-        'open',
-        'confirmed',
-        'skipped'
+    const DEPTH_LEVELS = Object.freeze(['concise', 'standard', 'deep'])
+    const UNDERSTANDING_STATUSES = Object.freeze([
+        'empty',
+        'pending',
+        'confirmed'
     ])
 
     function createInitialState() {
@@ -96,20 +89,6 @@
         }
 
         return id.trim()
-    }
-
-    function requireText(text, label) {
-        if (typeof text !== 'string') {
-            throw new Error(`${label} must be text`)
-        }
-
-        const trimmedText = text.trim()
-
-        if (trimmedText === '') {
-            throw new Error(`${label} cannot be blank`)
-        }
-
-        return trimmedText
     }
 
     function now() {
@@ -151,122 +130,67 @@
         return item
     }
 
-    function createEmptyResearch() {
+    function createEmptyUnderstanding() {
         return {
-            activeRoundId: null,
-            rounds: []
+            summary: '',
+            status: 'empty',
+            updatedAt: null,
+            confirmedAt: null
         }
     }
 
-    function getResearchRound(project) {
-        if (!project.research?.activeRoundId) {
-            return null
-        }
-
-        return (
-            project.research.rounds.find(
-                (round) => round.id === project.research.activeRoundId
-            ) ?? null
-        )
+    function understandingConfirmed(project) {
+        return project.understanding?.status === 'confirmed'
     }
 
-    function hasQualifyingResearchEntry(round) {
-        if (!round) {
-            return false
+    function setUnderstanding(state, projectId, summary) {
+        const project = findProject(state, projectId)
+        const trimmedSummary =
+            typeof summary === 'string' ? summary.trim() : ''
+
+        project.understanding = {
+            summary: trimmedSummary,
+            status: trimmedSummary === '' ? 'empty' : 'pending',
+            updatedAt: now(),
+            confirmedAt: null
         }
 
-        return round.entries.some((entry) => {
-            if (entry.kind === 'finding') {
-                return entry.sources.length > 0
-            }
-
-            return entry.kind === 'no-research-needed'
-        })
+        return state
     }
 
-    function researchGateSatisfied(project) {
-        const round = getResearchRound(project)
+    function confirmUnderstanding(state, projectId) {
+        const project = findProject(state, projectId)
 
-        return (
-            round !== null &&
-            (round.status === 'confirmed' || round.status === 'skipped')
-        )
-    }
-
-    function normalizeSources(sources, label) {
-        if (!Array.isArray(sources)) {
-            throw new Error(`${label} sources must be a list`)
-        }
-
-        return sources.map((source) => {
-            if (!source || typeof source !== 'object') {
-                throw new Error(`${label} source must be an object`)
-            }
-
-            return {
-                label: requireText(source.label, 'Source label'),
-                location: requireText(source.location, 'Source location')
-            }
-        })
-    }
-
-    function normalizeResearchEntry(entry) {
-        if (!entry || typeof entry !== 'object') {
-            throw new Error('Research entry must be an object')
-        }
-
-        const id = requireId(entry.id, 'Research entry')
-        const kind = String(entry.kind ?? '').trim()
-
-        if (!RESEARCH_KINDS.includes(kind)) {
-            throw new Error(`Unknown research entry kind: ${kind}`)
-        }
-
-        const title = requireText(entry.title, 'Research entry title')
-        const explanation =
-            typeof entry.explanation === 'string' ? entry.explanation.trim() : ''
-
-        if (
-            (kind === 'no-research-needed' || kind === 'skipped') &&
-            explanation === ''
-        ) {
+        if (!project.understanding.summary) {
             throw new Error(
-                `A ${kind} research entry requires an explanation`
+                'The understanding summary cannot be blank before it is confirmed.'
             )
         }
 
-        const sources = normalizeSources(entry.sources ?? [], 'Research entry')
-        const confidence = String(entry.confidence ?? 'medium').trim()
-
-        if (!RESEARCH_CONFIDENCE_LEVELS.includes(confidence)) {
-            throw new Error(`Unknown research confidence: ${confidence}`)
+        if (project.understanding.status === 'confirmed') {
+            return state
         }
 
-        if (kind === 'finding' && sources.length === 0) {
-            throw new Error('A research finding requires at least one source')
+        project.understanding.status = 'confirmed'
+        project.understanding.confirmedAt = now()
+        project.currentLoopStep = INSPECTION_STEP_INDEX
+
+        return state
+    }
+
+    function setProjectDepth(state, projectId, depth) {
+        const project = findProject(state, projectId)
+        const normalizedDepth = String(depth ?? '').trim()
+
+        if (!DEPTH_LEVELS.includes(normalizedDepth)) {
+            throw new Error(
+                `Unknown project depth: ${normalizedDepth}. Use concise, standard, or deep.`
+            )
         }
 
-        const relatedItemIds = entry.relatedItemIds ?? []
+        project.depth = normalizedDepth
 
-        if (!Array.isArray(relatedItemIds)) {
-            throw new Error('Related research items must be a list')
-        }
-
-        return {
-            id,
-            kind,
-            title,
-            explanation,
-            sources,
-            confidence,
-            relatedItemIds: relatedItemIds.map((itemId) =>
-                requireId(itemId, 'Related research item')
-            ),
-            createdAt:
-                typeof entry.createdAt === 'string' && entry.createdAt.trim()
-                    ? entry.createdAt.trim()
-                    : now()
-        }
+        return state
     }
 
     function addProject(state, id, name) {
@@ -280,9 +204,10 @@
             id: normalizedId,
             name: requireName(name, 'Project'),
             currentLoopStep: 0,
+            depth: 'standard',
+            understanding: createEmptyUnderstanding(),
             activeChecklistId: null,
-            checklists: [],
-            research: createEmptyResearch()
+            checklists: []
         }
 
         state.projects.push(project)
@@ -327,133 +252,6 @@
         }
 
         return state
-    }
-
-    function beginResearch(state, projectId, problem, roundId) {
-        const project = findProject(state, projectId)
-        const normalizedId = requireId(roundId, 'Research round')
-        const validatedProblem = requireText(problem, 'Research problem')
-
-        if (
-            project.research.rounds.some(
-                (round) => round.id === normalizedId
-            )
-        ) {
-            throw new Error(
-                `Research round ID already exists: ${normalizedId}`
-            )
-        }
-
-        const activeRound = getResearchRound(project)
-
-        if (activeRound && activeRound.status === 'open') {
-            throw new Error(
-                'A research round is already open. Confirm or skip it before starting another.'
-            )
-        }
-
-        const round = {
-            id: normalizedId,
-            problem: validatedProblem,
-            status: 'open',
-            startedAt: now(),
-            concludedAt: null,
-            reason: '',
-            entries: []
-        }
-
-        project.research.rounds.push(round)
-        project.research.activeRoundId = round.id
-        project.currentLoopStep = RESEARCH_STEP_INDEX
-
-        return state
-    }
-
-    function addResearchEntry(state, projectId, entry) {
-        const project = findProject(state, projectId)
-        const round = getResearchRound(project)
-
-        if (!round) {
-            throw new Error(
-                'No active research round. Begin research before recording entries.'
-            )
-        }
-
-        if (round.entries.some((candidate) => candidate.id === entry?.id)) {
-            throw new Error(
-                `Research entry ID already exists: ${entry?.id}`
-            )
-        }
-
-        const normalizedEntry = normalizeResearchEntry(entry)
-        round.entries.push(normalizedEntry)
-
-        if (round.status !== 'open') {
-            round.status = 'open'
-            round.concludedAt = null
-            round.reason = ''
-        }
-
-        return state
-    }
-
-    function confirmResearch(state, projectId) {
-        const project = findProject(state, projectId)
-        const round = getResearchRound(project)
-
-        if (!round) {
-            throw new Error(
-                'No active research round. Begin research before confirming.'
-            )
-        }
-
-        if (!hasQualifyingResearchEntry(round)) {
-            throw new Error(
-                'Research needs a sourced finding or a no-research-needed entry before it can be confirmed.'
-            )
-        }
-
-        round.status = 'confirmed'
-        round.concludedAt = now()
-        round.reason = ''
-        project.currentLoopStep = INSPECTION_STEP_INDEX
-
-        return state
-    }
-
-    function skipResearch(state, projectId, reason) {
-        const project = findProject(state, projectId)
-        const round = getResearchRound(project)
-
-        if (!round) {
-            throw new Error(
-                'No active research round. Begin research before skipping.'
-            )
-        }
-
-        const validatedReason = requireText(reason, 'Research skip reason')
-
-        round.entries.push(
-            normalizeResearchEntry({
-                id: createId('research-entry'),
-                kind: 'skipped',
-                title: 'Research skipped',
-                explanation: validatedReason,
-                sources: [],
-                confidence: 'high',
-                relatedItemIds: [],
-                createdAt: now()
-            })
-        )
-        round.status = 'skipped'
-        round.concludedAt = now()
-        round.reason = validatedReason
-        project.currentLoopStep = INSPECTION_STEP_INDEX
-
-        return {
-            state,
-            warning: `Research was skipped: ${validatedReason}`
-        }
     }
 
     function addChecklist(state, projectId, id, name) {
@@ -621,11 +419,11 @@
         }
 
         if (
-            stepIndex > RESEARCH_STEP_INDEX &&
-            !researchGateSatisfied(project)
+            stepIndex > UNDERSTANDING_STEP_INDEX &&
+            !understandingConfirmed(project)
         ) {
             throw new Error(
-                'Research must be confirmed or explicitly skipped before moving past Research.'
+                'The understanding summary must be confirmed before moving past Understanding.'
             )
         }
 
@@ -717,16 +515,17 @@
             }
 
             const requestedLoopStep = project.currentLoopStep ?? 0
-            const legacyLoopStep = isLegacyVersion
-                ? requestedLoopStep === 0
-                    ? 0
-                    : RESEARCH_STEP_INDEX
-                : requestedLoopStep
+            const normalizedLoopStep =
+                parsedState.version <= 2
+                    ? requestedLoopStep === 0
+                        ? 0
+                        : UNDERSTANDING_STEP_INDEX
+                    : requestedLoopStep
 
             if (
-                !Number.isInteger(legacyLoopStep) ||
-                legacyLoopStep < 0 ||
-                legacyLoopStep >= LOOP_STEPS.length
+                !Number.isInteger(normalizedLoopStep) ||
+                normalizedLoopStep < 0 ||
+                normalizedLoopStep >= LOOP_STEPS.length
             ) {
                 throw new Error(
                     'Could not parse saved data: invalid loop step'
@@ -864,29 +663,35 @@
                 )
             }
 
-            const research = isLegacyVersion
-                ? createLegacyResearch(projectId)
-                : normalizeResearch(project.research, projectId)
+            const depth = normalizeDepth(
+                parsedState.version === STORAGE_VERSION
+                    ? project.depth
+                    : 'standard'
+            )
+            const understanding =
+                parsedState.version === STORAGE_VERSION
+                    ? normalizeUnderstanding(project.understanding)
+                    : parsedState.version === 3
+                      ? migrateResearchToUnderstanding(project.research)
+                      : createEmptyUnderstanding()
 
             if (
-                legacyLoopStep > RESEARCH_STEP_INDEX &&
-                !researchGateSatisfied({
-                    research,
-                    currentLoopStep: legacyLoopStep
-                })
+                normalizedLoopStep > UNDERSTANDING_STEP_INDEX &&
+                understanding.status !== 'confirmed'
             ) {
                 throw new Error(
-                    'Could not parse saved data: the research checkpoint is missing'
+                    'Could not parse saved data: the understanding checkpoint is missing'
                 )
             }
 
             return {
                 id: projectId,
                 name: project.name.trim(),
-                currentLoopStep: legacyLoopStep,
+                currentLoopStep: normalizedLoopStep,
+                depth,
+                understanding,
                 activeChecklistId,
-                checklists,
-                research
+                checklists
             }
         })
 
@@ -911,7 +716,7 @@
             !projectIds.has(normalizedActiveProjectId)
         ) {
             throw new Error(
-                'Could not parse saved data: active project does not exist'
+                'Could not parse data: active project does not exist'
             )
         }
 
@@ -926,278 +731,140 @@
         }
     }
 
-    function createLegacyResearch(projectId) {
-        const round = {
-            id: `${projectId}-research-1`,
-            problem: 'Continue the current work',
-            status: 'open',
-            startedAt: now(),
-            concludedAt: null,
-            reason: '',
-            entries: []
+    function normalizeDepth(depth) {
+        const normalizedDepth = String(depth ?? 'standard').trim()
+
+        if (!DEPTH_LEVELS.includes(normalizedDepth)) {
+            throw new Error('Could not parse saved data: invalid project depth')
+        }
+
+        return normalizedDepth
+    }
+
+    function normalizeUnderstanding(understanding) {
+        if (!understanding || typeof understanding !== 'object') {
+            throw new Error(
+                'Could not parse saved data: invalid understanding summary'
+            )
+        }
+
+        const summary =
+            typeof understanding.summary === 'string'
+                ? understanding.summary.trim()
+                : ''
+        const status = String(understanding.status ?? 'empty').trim()
+
+        if (!UNDERSTANDING_STATUSES.includes(status)) {
+            throw new Error(
+                'Could not parse saved data: invalid understanding status'
+            )
+        }
+
+        if (status !== 'empty' && summary === '') {
+            throw new Error(
+                'Could not parse saved data: understanding summary cannot be blank'
+            )
+        }
+
+        const updatedAt =
+            typeof understanding.updatedAt === 'string'
+                ? understanding.updatedAt.trim() || null
+                : null
+        const confirmedAt =
+            typeof understanding.confirmedAt === 'string'
+                ? understanding.confirmedAt.trim() || null
+                : null
+
+        if (status === 'confirmed' && !confirmedAt) {
+            throw new Error(
+                'Could not parse saved data: confirmed understanding needs a date'
+            )
         }
 
         return {
-            activeRoundId: round.id,
-            rounds: [round]
+            summary,
+            status,
+            updatedAt,
+            confirmedAt
         }
     }
 
-    function normalizeResearch(research, projectId) {
-        if (!research || typeof research !== 'object') {
-            throw new Error(
-                'Could not parse saved data: invalid research area'
-            )
+    function migrateResearchToUnderstanding(research) {
+        if (!research || !Array.isArray(research.rounds)) {
+            return createEmptyUnderstanding()
         }
 
-        if (!Array.isArray(research.rounds)) {
-            throw new Error(
-                'Could not parse saved data: research rounds must be a list'
-            )
+        const activeRound =
+            research.rounds.find(
+                (round) => round.id === research.activeRoundId
+            ) ?? research.rounds[research.rounds.length - 1]
+
+        if (!activeRound || !Array.isArray(activeRound.entries)) {
+            return createEmptyUnderstanding()
         }
 
-        const roundIds = new Set()
-        const rounds = research.rounds.map((round) => {
-            if (!round || typeof round !== 'object') {
-                throw new Error(
-                    'Could not parse saved data: invalid research round'
-                )
-            }
+        const problem = String(activeRound.problem ?? '').trim()
+        const titles = activeRound.entries
+            .map((entry) => String(entry.title ?? '').trim())
+            .filter(Boolean)
+        const lines = []
 
-            if (
-                typeof round.id !== 'string' ||
-                round.id.trim() === ''
-            ) {
-                throw new Error(
-                    'Could not parse saved data: invalid research round ID'
-                )
-            }
+        if (problem) {
+            lines.push(problem)
+        }
 
-            const roundId = round.id.trim()
+        for (const title of titles.slice(0, 5)) {
+            lines.push(`- ${title}`)
+        }
 
-            if (roundIds.has(roundId)) {
-                throw new Error(
-                    `Could not parse saved data: duplicate research round ID ${roundId}`
-                )
-            }
-            roundIds.add(roundId)
+        if (titles.length > 5) {
+            lines.push(`- …and ${titles.length - 5} more findings`)
+        }
 
-            if (
-                typeof round.problem !== 'string' ||
-                round.problem.trim() === ''
-            ) {
-                throw new Error(
-                    'Could not parse saved data: invalid research problem'
-                )
-            }
+        const summary = lines.join('\n')
 
-            if (!RESEARCH_ROUND_STATUSES.includes(round.status)) {
-                throw new Error(
-                    'Could not parse saved data: invalid research round status'
-                )
-            }
-
-            if (!Array.isArray(round.entries)) {
-                throw new Error(
-                    'Could not parse saved data: research entries must be a list'
-                )
-            }
-
-            const entryIds = new Set()
-            const entries = round.entries.map((entry) => {
-                if (!entry || typeof entry !== 'object') {
-                    throw new Error(
-                        'Could not parse saved data: invalid research entry'
-                    )
-                }
-
-                if (
-                    typeof entry.id !== 'string' ||
-                    entry.id.trim() === ''
-                ) {
-                    throw new Error(
-                        'Could not parse saved data: invalid research entry ID'
-                    )
-                }
-
-                const entryId = entry.id.trim()
-
-                if (entryIds.has(entryId)) {
-                    throw new Error(
-                        `Could not parse saved data: duplicate research entry ID ${entryId}`
-                    )
-                }
-                entryIds.add(entryId)
-
-                if (!RESEARCH_KINDS.includes(entry.kind)) {
-                    throw new Error(
-                        'Could not parse saved data: unknown research entry kind'
-                    )
-                }
-
-                if (
-                    typeof entry.title !== 'string' ||
-                    entry.title.trim() === ''
-                ) {
-                    throw new Error(
-                        'Could not parse saved data: invalid research entry title'
-                    )
-                }
-
-                if (typeof entry.explanation !== 'string') {
-                    throw new Error(
-                        'Could not parse saved data: invalid research explanation'
-                    )
-                }
-
-                if (!Array.isArray(entry.sources)) {
-                    throw new Error(
-                        'Could not parse saved data: research sources must be a list'
-                    )
-                }
-
-                const sources = entry.sources.map((source) => {
-                    if (!source || typeof source !== 'object') {
-                        throw new Error(
-                            'Could not parse saved data: invalid research source'
-                        )
-                    }
-
-                    if (
-                        typeof source.label !== 'string' ||
-                        source.label.trim() === ''
-                    ) {
-                        throw new Error(
-                            'Could not parse saved data: invalid research source label'
-                        )
-                    }
-
-                    if (
-                        typeof source.location !== 'string' ||
-                        source.location.trim() === ''
-                    ) {
-                        throw new Error(
-                            'Could not parse saved data: invalid research source location'
-                        )
-                    }
-
-                    return {
-                        label: source.label.trim(),
-                        location: source.location.trim()
-                    }
-                })
-
-                if (entry.kind === 'finding' && sources.length === 0) {
-                    throw new Error(
-                        'Could not parse saved data: research finding requires a source'
-                    )
-                }
-
-                if (
-                    !RESEARCH_CONFIDENCE_LEVELS.includes(entry.confidence)
-                ) {
-                    throw new Error(
-                        'Could not parse saved data: invalid research confidence'
-                    )
-                }
-
-                if (!Array.isArray(entry.relatedItemIds)) {
-                    throw new Error(
-                        'Could not parse saved data: related research items must be a list'
-                    )
-                }
-
-                if (
-                    typeof entry.createdAt !== 'string' ||
-                    entry.createdAt.trim() === ''
-                ) {
-                    throw new Error(
-                        'Could not parse saved data: invalid research entry date'
-                    )
-                }
-
-                return {
-                    id: entryId,
-                    kind: entry.kind,
-                    title: entry.title.trim(),
-                    explanation: entry.explanation.trim(),
-                    sources,
-                    confidence: entry.confidence,
-                    relatedItemIds: entry.relatedItemIds.map((itemId) =>
-                        String(itemId)
-                    ),
-                    createdAt: entry.createdAt.trim()
-                }
-            })
-
+        if (!summary) {
             return {
-                id: roundId,
-                problem: round.problem.trim(),
-                status: round.status,
-                startedAt:
-                    typeof round.startedAt === 'string'
-                        ? round.startedAt.trim()
-                        : now(),
-                concludedAt:
-                    typeof round.concludedAt === 'string'
-                        ? round.concludedAt.trim()
-                        : null,
-                reason:
-                    typeof round.reason === 'string' ? round.reason.trim() : '',
-                entries
+                ...createEmptyUnderstanding(),
+                updatedAt:
+                    typeof activeRound.startedAt === 'string'
+                        ? activeRound.startedAt.trim() || null
+                        : null
             }
-        })
-
-        const requestedActiveRoundId = research.activeRoundId ?? null
-
-        if (
-            requestedActiveRoundId !== null &&
-            typeof requestedActiveRoundId !== 'string'
-        ) {
-            throw new Error(
-                'Could not parse saved data: invalid active research round'
-            )
         }
 
-        const normalizedActiveRoundId =
-            typeof requestedActiveRoundId === 'string'
-                ? requestedActiveRoundId.trim()
-                : null
-
-        if (
-            normalizedActiveRoundId !== null &&
-            !roundIds.has(normalizedActiveRoundId)
-        ) {
-            throw new Error(
-                'Could not parse saved data: active research round does not exist'
-            )
-        }
+        const confirmed = activeRound.status === 'confirmed'
 
         return {
-            activeRoundId: normalizedActiveRoundId,
-            rounds
+            summary,
+            status: confirmed ? 'confirmed' : 'pending',
+            updatedAt:
+                typeof activeRound.startedAt === 'string'
+                    ? activeRound.startedAt.trim() || null
+                    : null,
+            confirmedAt: confirmed
+                ? typeof activeRound.concludedAt === 'string'
+                    ? activeRound.concludedAt.trim() || null
+                    : null
+                : null
         }
     }
 
     return {
         STORAGE_VERSION,
         LOOP_STEPS,
-        RESEARCH_KINDS,
-        RESEARCH_CONFIDENCE_LEVELS,
-        RESEARCH_STEP_INDEX,
+        DEPTH_LEVELS,
+        UNDERSTANDING_STEP_INDEX,
         INSPECTION_STEP_INDEX,
         createInitialState,
         addProject,
         renameProject,
         setActiveProject,
         deleteProject,
-        beginResearch,
-        addResearchEntry,
-        confirmResearch,
-        skipResearch,
-        getResearchRound,
-        hasQualifyingResearchEntry,
-        researchGateSatisfied,
+        setUnderstanding,
+        confirmUnderstanding,
+        setProjectDepth,
+        understandingConfirmed,
         addChecklist,
         renameChecklist,
         setActiveChecklist,

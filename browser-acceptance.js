@@ -275,7 +275,7 @@ async function main() {
                 type: 'state.replace',
                 payload: {
                     state: {
-                        version: 3,
+                        version: 4,
                         revision: 0,
                         activeProjectId: null,
                         projects: []
@@ -310,37 +310,25 @@ async function main() {
         return true;
     })()`)
     await waitFor(
-        `document.getElementById('status-message').textContent.includes('Research must be confirmed')`
+        `document.getElementById('status-message').textContent.includes('understanding summary must be confirmed')`
     )
 
     await evaluate(`(() => {
-        document.getElementById('research-problem-input').value = 'How should attendance corrections be recorded?';
-        document.getElementById('research-begin-form').requestSubmit();
+        document.getElementById('understanding-input').value =
+            'The endpoint should reject a missing student ID and keep valid records unchanged.';
+        document.getElementById('understanding-save-button').click();
         return true;
     })()`)
     await waitFor(
-        `document.getElementById('research-status').textContent === 'open'`
+        `document.getElementById('understanding-status').textContent === 'Awaiting confirmation'`
     )
 
     await evaluate(`(() => {
-        document.getElementById('research-kind').value = 'finding';
-        document.getElementById('research-title-input').value = 'Corrections are append-only';
-        document.getElementById('research-explanation-input').value = 'The audit specification forbids mutating closed records.';
-        document.getElementById('research-source-label').value = 'Audit specification';
-        document.getElementById('research-source-location').value = 'docs/audit.md';
-        document.getElementById('research-add-form').requestSubmit();
+        document.getElementById('understanding-confirm-button').click();
         return true;
     })()`)
     await waitFor(
-        `document.querySelectorAll('#research-entries > li').length === 1`
-    )
-
-    await evaluate(`(() => {
-        document.getElementById('research-confirm-button').click();
-        return true;
-    })()`)
-    await waitFor(
-        `document.getElementById('research-status').textContent === 'confirmed'`
+        `document.getElementById('understanding-status').textContent === 'Confirmed'`
     )
     await waitFor(`document.getElementById('loop-gate-hint').hidden === true`)
 
@@ -414,15 +402,9 @@ async function main() {
         `document.querySelectorAll('#checklist-items li').length === 1`
     )
 
-    const skipCli = spawnSync(
+    const depthCli = spawnSync(
         process.execPath,
-        [
-            path.join(ROOT, 'cli.js'),
-            'research',
-            'begin',
-            'Campus',
-            'Migration research'
-        ],
+        [path.join(ROOT, 'cli.js'), 'project', 'depth', 'Campus', 'concise'],
         {
             cwd: ROOT,
             env: {
@@ -432,28 +414,8 @@ async function main() {
             encoding: 'utf8'
         }
     )
-    assert.equal(skipCli.status, 0, skipCli.stderr)
-
-    const skipResult = spawnSync(
-        process.execPath,
-        [
-            path.join(ROOT, 'cli.js'),
-            'research',
-            'skip',
-            'Campus',
-            'Existing incident review covered this area'
-        ],
-        {
-            cwd: ROOT,
-            env: {
-                ...process.env,
-                PI_PAIRING_URL: `http://127.0.0.1:${PORT}`
-            },
-            encoding: 'utf8'
-        }
-    )
-    assert.equal(skipResult.status, 0, skipResult.stderr)
-    assert.match(skipResult.stdout, /Research was skipped/i)
+    assert.equal(depthCli.status, 0, depthCli.stderr)
+    assert.match(depthCli.stdout, /teaching depth to concise/i)
 
     await evaluate(`(() => {
         const select = document.getElementById('project-select');
@@ -462,10 +424,10 @@ async function main() {
         return true;
     })()`)
     await waitFor(
-        `document.getElementById('research-warning').hidden === false`
+        `document.getElementById('depth-select').value === 'concise'`
     )
     await waitFor(
-        `document.getElementById('research-warning').textContent.includes('Existing incident review')`
+        `document.getElementById('understanding-status').textContent === 'Not started'`
     )
 
     await capture('/tmp/pi-pairing-wide.png', 1440, 1000)

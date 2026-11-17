@@ -18,26 +18,15 @@
         loopPosition: document.getElementById('loop-position'),
         loopPrompt: document.getElementById('loop-prompt-text'),
         loopGateHint: document.getElementById('loop-gate-hint'),
-        researchStatus: document.getElementById('research-status'),
-        researchWarning: document.getElementById('research-warning'),
-        researchBeginForm: document.getElementById('research-begin-form'),
-        researchProblemInput: document.getElementById('research-problem-input'),
-        researchRound: document.getElementById('research-round'),
-        researchRoundProblem: document.getElementById('research-round-problem'),
-        researchConfirmButton: document.getElementById('research-confirm-button'),
-        researchSkipButton: document.getElementById('research-skip-button'),
-        researchNewRoundButton: document.getElementById('research-new-round-button'),
-        researchEntries: document.getElementById('research-entries'),
-        researchAddForm: document.getElementById('research-add-form'),
-        researchKind: document.getElementById('research-kind'),
-        researchConfidence: document.getElementById('research-confidence'),
-        researchTitleInput: document.getElementById('research-title-input'),
-        researchExplanationInput: document.getElementById(
-            'research-explanation-input'
+        understandingStatus: document.getElementById('understanding-status'),
+        understandingWarning: document.getElementById('understanding-warning'),
+        depthSelect: document.getElementById('depth-select'),
+        understandingInput: document.getElementById('understanding-input'),
+        understandingSaveButton: document.getElementById(
+            'understanding-save-button'
         ),
-        researchSourceLabel: document.getElementById('research-source-label'),
-        researchSourceLocation: document.getElementById(
-            'research-source-location'
+        understandingConfirmButton: document.getElementById(
+            'understanding-confirm-button'
         ),
         checklistSelect: document.getElementById('checklist-select'),
         addChecklistButton: document.getElementById('add-checklist-button'),
@@ -616,120 +605,46 @@
             'This checklist is empty. Add the first item below.'
     }
 
-    function renderResearch(project) {
-        const round = project
-            ? (project.research?.rounds?.find(
-                  (candidate) => candidate.id === project.research.activeRoundId
-              ) ?? null)
-            : null
-
-        elements.researchEntries.replaceChildren()
-
+    function renderUnderstanding(project) {
         if (!project) {
-            elements.researchStatus.textContent = 'No project'
-            elements.researchBeginForm.hidden = true
-            elements.researchRound.hidden = true
-            elements.researchWarning.hidden = true
+            elements.understandingStatus.textContent = 'No project'
+            elements.understandingWarning.hidden = true
+            elements.understandingInput.value = ''
+            elements.depthSelect.value = 'standard'
+            elements.understandingSaveButton.disabled = true
+            elements.understandingConfirmButton.disabled = true
             elements.loopGateHint.hidden = true
             return
         }
 
-        if (!round) {
-            elements.researchStatus.textContent = 'No round'
-            elements.researchBeginForm.hidden = false
-            elements.researchRound.hidden = true
-            elements.researchWarning.hidden = true
-            elements.loopGateHint.hidden = false
-            return
+        const understanding = project.understanding
+        const statusLabels = {
+            empty: 'Not started',
+            pending: 'Awaiting confirmation',
+            confirmed: 'Confirmed'
         }
 
-        elements.researchBeginForm.hidden = true
-        elements.researchRound.hidden = false
-        elements.researchStatus.textContent = round.status
-        elements.researchRoundProblem.textContent = round.problem
+        elements.understandingStatus.textContent =
+            statusLabels[understanding.status] ?? understanding.status
 
-        if (round.status === 'skipped') {
-            elements.researchWarning.textContent = `Research was skipped: ${round.reason}`
-            elements.researchWarning.hidden = false
+        if (document.activeElement !== elements.understandingInput) {
+            elements.understandingInput.value = understanding.summary
+        }
+
+        elements.depthSelect.value = project.depth
+        elements.understandingSaveButton.disabled = !connected
+        elements.understandingConfirmButton.disabled =
+            understanding.status !== 'pending'
+
+        if (understanding.status === 'pending') {
+            elements.understandingWarning.textContent =
+                'Waiting for your confirmation that Pi understands the problem correctly.'
+            elements.understandingWarning.hidden = false
         } else {
-            elements.researchWarning.hidden = true
+            elements.understandingWarning.hidden = true
         }
 
-        elements.researchConfirmButton.disabled = !(
-            round.status === 'open' &&
-            Core.hasQualifyingResearchEntry(round)
-        )
-        elements.researchSkipButton.disabled = round.status !== 'open'
-        elements.researchNewRoundButton.disabled = round.status === 'open'
-        elements.loopGateHint.hidden = Core.researchGateSatisfied(project)
-
-        round.entries.forEach((entry) => {
-            const listItem = document.createElement('li')
-            const header = document.createElement('div')
-            const kind = document.createElement('span')
-            const title = document.createElement('strong')
-            const confidence = document.createElement('span')
-            const explanation = document.createElement('p')
-            const sources = document.createElement('ul')
-
-            listItem.className = 'research-entry'
-            header.className = 'research-entry-header'
-
-            kind.className = 'research-kind'
-            kind.dataset.kind = entry.kind
-            kind.textContent = entry.kind
-
-            title.className = 'research-entry-title'
-            title.textContent = entry.title
-
-            confidence.className = 'research-confidence'
-            confidence.textContent = entry.confidence
-
-            header.append(kind, title, confidence)
-
-            if (entry.explanation) {
-                explanation.className = 'research-entry-explanation'
-                explanation.textContent = entry.explanation
-            }
-
-            if (entry.sources.length > 0) {
-                sources.className = 'research-sources'
-
-                entry.sources.forEach((source) => {
-                    const sourceItem = document.createElement('li')
-                    const sourceLabel = document.createElement('span')
-
-                    sourceLabel.textContent = `${source.label}: `
-
-                    if (/^https?:\/\//i.test(source.location)) {
-                        const link = document.createElement('a')
-                        link.href = source.location
-                        link.textContent = source.location
-                        link.target = '_blank'
-                        link.rel = 'noreferrer noopener'
-                        sourceItem.append(sourceLabel, link)
-                    } else {
-                        const code = document.createElement('code')
-                        code.textContent = source.location
-                        sourceItem.append(sourceLabel, code)
-                    }
-
-                    sources.append(sourceItem)
-                })
-            }
-
-            listItem.append(header)
-
-            if (entry.explanation) {
-                listItem.append(explanation)
-            }
-
-            if (entry.sources.length > 0) {
-                listItem.append(sources)
-            }
-
-            elements.researchEntries.append(listItem)
-        })
+        elements.loopGateHint.hidden = Core.understandingConfirmed(project)
     }
 
     function render() {
@@ -738,7 +653,7 @@
 
         renderProjectControls()
         renderLoop()
-        renderResearch(project)
+        renderUnderstanding(project)
         renderChecklistControls(project)
         renderChecklistItems(project, checklist)
     }
@@ -1082,67 +997,26 @@
         void addItem()
     })
 
-    elements.researchBeginForm.addEventListener('submit', (event) => {
-        event.preventDefault()
-
+    elements.understandingSaveButton.addEventListener('click', () => {
         const project = getActiveProject()
-        const problem = elements.researchProblemInput.value.trim()
 
-        if (!project || !problem) {
+        if (!project) {
             return
         }
 
         void commit(
             {
-                type: 'research.begin',
-                payload: { project: project.id, problem }
-            },
-            'Research round started.'
-        ).then(() => {
-            elements.researchProblemInput.value = ''
-        })
-    })
-
-    elements.researchAddForm.addEventListener('submit', (event) => {
-        event.preventDefault()
-
-        const project = getActiveProject()
-        const title = elements.researchTitleInput.value.trim()
-        const explanation = elements.researchExplanationInput.value.trim()
-        const sourceLabel = elements.researchSourceLabel.value.trim()
-        const sourceLocation = elements.researchSourceLocation.value.trim()
-        const sources =
-            sourceLabel && sourceLocation
-                ? [{ label: sourceLabel, location: sourceLocation }]
-                : []
-
-        if (!project || !title) {
-            return
-        }
-
-        void commit(
-            {
-                type: 'research.add',
+                type: 'understanding.set',
                 payload: {
                     project: project.id,
-                    kind: elements.researchKind.value,
-                    title,
-                    explanation,
-                    sources,
-                    confidence: elements.researchConfidence.value,
-                    relatedItemIds: []
+                    summary: elements.understandingInput.value
                 }
             },
-            'Research entry recorded.'
-        ).then(() => {
-            elements.researchTitleInput.value = ''
-            elements.researchExplanationInput.value = ''
-            elements.researchSourceLabel.value = ''
-            elements.researchSourceLocation.value = ''
-        })
+            'Understanding summary saved.'
+        )
     })
 
-    elements.researchConfirmButton.addEventListener('click', () => {
+    elements.understandingConfirmButton.addEventListener('click', () => {
         const project = getActiveProject()
 
         if (!project) {
@@ -1151,56 +1025,29 @@
 
         void commit(
             {
-                type: 'research.confirm',
+                type: 'understanding.confirm',
                 payload: { project: project.id }
             },
-            'Research confirmed.'
+            'Understanding confirmed.'
         )
     })
 
-    elements.researchSkipButton.addEventListener('click', () => {
+    elements.depthSelect.addEventListener('change', () => {
         const project = getActiveProject()
 
         if (!project) {
             return
         }
 
-        const reason = window.prompt(
-            'Why is research being skipped for this problem?'
-        )
-
-        if (reason === null) {
-            return
-        }
-
         void commit(
             {
-                type: 'research.skip',
-                payload: { project: project.id, reason }
+                type: 'project.depth',
+                payload: {
+                    project: project.id,
+                    depth: elements.depthSelect.value
+                }
             },
-            'Research skipped.'
-        )
-    })
-
-    elements.researchNewRoundButton.addEventListener('click', () => {
-        const project = getActiveProject()
-
-        if (!project) {
-            return
-        }
-
-        const problem = window.prompt('What problem should this round research?')
-
-        if (problem === null) {
-            return
-        }
-
-        void commit(
-            {
-                type: 'research.begin',
-                payload: { project: project.id, problem }
-            },
-            'New research round started.'
+            'Teaching depth updated.'
         )
     })
 

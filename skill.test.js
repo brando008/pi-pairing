@@ -62,10 +62,12 @@ test('the repository skill references the guide and canonical loop', () => {
         /Direction → Pseudocode → Specific guidance → Walkthrough/
     )
     assert.match(skill, /notes file/i)
+    assert.match(skill, /understanding set/)
+    assert.match(skill, /project depth/i)
 
     for (const label of [
         'Problem',
-        'Research',
+        'Understanding',
         'Inspection and Explanation',
         'Steps',
         'Changes',

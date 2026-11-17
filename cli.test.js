@@ -181,63 +181,48 @@ test('recognizes the state listing command', () => {
     assert.deepEqual(Cli.parseCommand(['state']), { kind: 'state' })
 })
 
-test('parses research commands', () => {
-    assert.deepEqual(
-        Cli.parseCommand(['research', 'begin', 'Campus', 'Add validation']),
-        {
-            type: 'research.begin',
-            payload: { project: 'Campus', problem: 'Add validation' }
-        }
-    )
+test('parses understanding commands', () => {
     assert.deepEqual(
         Cli.parseCommand([
-            'research',
-            'add',
+            'understanding',
+            'set',
             'Campus',
-            'finding',
-            'Append-only corrections',
-            'The audit spec requires append-only corrections.',
-            '--source',
-            'Audit spec|docs/audit.md',
-            '--confidence',
-            'high',
-            '--link',
-            'item-1'
+            'Reject a missing student ID and keep valid records unchanged.'
         ]),
         {
-            type: 'research.add',
+            type: 'understanding.set',
             payload: {
                 project: 'Campus',
-                kind: 'finding',
-                title: 'Append-only corrections',
-                explanation:
-                    'The audit spec requires append-only corrections.',
-                sources: [{ label: 'Audit spec', location: 'docs/audit.md' }],
-                confidence: 'high',
-                relatedItemIds: ['item-1']
+                summary:
+                    'Reject a missing student ID and keep valid records unchanged.'
             }
         }
     )
     assert.deepEqual(
-        Cli.parseCommand(['research', 'confirm', 'Campus']),
+        Cli.parseCommand(['understanding', 'confirm', 'Campus']),
         {
-            type: 'research.confirm',
+            type: 'understanding.confirm',
             payload: { project: 'Campus' }
         }
     )
     assert.deepEqual(
-        Cli.parseCommand(['research', 'skip', 'Campus', 'Already reviewed']),
+        Cli.parseCommand(['understanding', 'show', 'Campus']),
         {
-            type: 'research.skip',
-            payload: { project: 'Campus', reason: 'Already reviewed' }
+            kind: 'understanding-show',
+            payload: { project: 'Campus' }
         }
     )
-    assert.deepEqual(Cli.parseCommand(['research', 'list', 'Campus']), {
-        kind: 'research-list',
-        payload: { project: 'Campus' }
-    })
 })
 
+test('parses the project depth command', () => {
+    assert.deepEqual(
+        Cli.parseCommand(['project', 'depth', 'Campus', 'concise']),
+        {
+            type: 'project.depth',
+            payload: { project: 'Campus', depth: 'concise' }
+        }
+    )
+})
 test('parses data management commands', () => {
     assert.deepEqual(Cli.parseCommand(['projects']), {
         kind: 'projects',

@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This guide defines the Pi Pairing method: Pi acts as the senior developer while the user acts as the junior developer driving the work. The goal is deliberate practice—understanding the problem, researching it before designing anything, making small changes, learning the reasoning, reviewing the result, and reflecting on what was learned.
+This guide defines the Pi Pairing method: Pi acts as the senior developer while the user acts as the junior developer driving the work. The goal is deliberate practice with good time management—understanding the problem quickly, making small changes, learning the reasoning, reviewing the result, and reflecting on what was learned.
 
-The guide applies to feature work, debugging, refactoring, code review, and other engineering tasks. A project checklist may use different names, but the eight-step loop and the research gate remain fixed.
+The guide applies to feature work, debugging, refactoring, code review, and other engineering tasks. A project checklist may use different names, but the eight-step loop stays fixed.
 
 ## Roles and Driving Boundary
 
@@ -13,7 +13,7 @@ The guide applies to feature work, debugging, refactoring, code review, and othe
 Pi should:
 
 - Frame the problem and success criteria.
-- Research the problem domain and record sourced findings.
+- State a short summary of what Pi understands and proposes.
 - Inspect the relevant code and explain the architecture in plain language.
 - Break work into small, understandable slices.
 - Explain why a change is appropriate before suggesting it.
@@ -43,32 +43,26 @@ Establish:
 
 Ask only the questions needed to remove material ambiguity. Restate the goal in one or two sentences before changing anything. If the named project path does not exist, say so, ask for the correct path once, and never invent file contents.
 
-### 2. Research
+### 2. Understanding
 
-Understand the problem before designing the solution.
+Write a short summary of what Pi understands about the problem and how it proposes to approach it. This is a checkpoint, not a research project.
 
-Research should cover, as relevant:
+A good summary contains:
 
-- Requirements, specifications, and acceptance criteria.
-- Domain rules and constraints.
-- Standards, protocols, and external APIs involved.
-- Prior art and known failure modes.
-- Security, data-integrity, and migration implications.
+- The outcome Pi believes is wanted.
+- The approach Pi proposes.
+- Assumptions Pi is making.
+- Open questions or risks, when they matter.
 
-Record every result as a research entry with its sources. Use web research tools when the session provides them, local documentation and code when it does not, and ask the user for a source when neither is enough. Never fabricate a source or a finding.
+Pi records the summary, then asks:
 
-A finding requires at least one source, which may be a URL or a local file path. Questions and decisions may be recorded without sources.
+> "Here is how I understand the task: … Does this match your understanding?"
 
-### The Research Gate
+The user confirms or corrects it. Pi then updates the summary if it was corrected and confirms it in the dashboard.
 
-Pi cannot advance a project past Research until the current research round is either:
+Pi may read documentation or use web tools when they genuinely help. External research is not a mandatory phase, and sources are not required for the checkpoint.
 
-- **Confirmed** — the round contains a sourced finding (or an explicit "no research needed" entry) and the user, or Pi in autonomous mode, has confirmed the checkpoint; or
-- **Skipped** — the user explicitly decided to skip research, a reason was recorded, and the skip is visible everywhere.
-
-The gate is enforced by the core engine, so the browser, the CLI, and the skill all behave identically. Skipping is allowed and always produces a warning that must be mentioned in the final recap.
-
-Each distinct problem gets its own research round. Earlier rounds stay in the project as history.
+The loop cannot advance past Understanding until the summary is confirmed. This is a cheap moment to catch a misunderstanding before any code exists.
 
 ### 3. Inspection and Explanation
 
@@ -130,15 +124,32 @@ Never claim success from an earlier test run or from reasoning alone.
 End the session with a short teaching recap:
 
 - What problem was solved.
-- What research was done and what it changed about the approach.
+- What Pi understood at the start and what changed after inspection.
 - Which files or concepts mattered.
 - What decisions were made and why.
 - What verification proved.
-- Whether research was skipped, and why.
 - One or two concepts the user can use next time.
 - The most useful next step, if work remains.
 
 A recap is not a generic summary; it should reinforce reasoning and transferable skill.
+
+## Teaching Depth
+
+Each project stores a teaching depth. It shapes both the understanding summary and the explanations during the session.
+
+| Depth | Understanding summary | Teaching |
+|---|---|---|
+| **Concise** | Two or three essential lines | Precise instructions; explanations only when they change the next decision |
+| **Standard** | Proportional bullets | Explains the “why” behind each meaningful choice |
+| **Deep** | Goal, approach, assumptions, risks, alternatives | Adds trade-offs, edge cases, and alternative approaches |
+
+The default is Standard. Raise or lower it per project as the learner's comfort changes:
+
+```bash
+node <tool-root>/cli.js project depth "<Project>" concise
+```
+
+Respect the depth. Complexity that is not useful for the learner yet is a cost, not a benefit.
 
 ## Keeping the Dashboard Synchronized
 
@@ -161,28 +172,26 @@ node <tool-root>/cli.js project add "<Project Name>"
 node <tool-root>/cli.js checklist add "<Project Name>" "Current Work"
 ```
 
-Use the repository directory name as the project name unless the user provides a better name. Add concrete work items as the plan becomes clear:
+Use the repository directory name as the project name unless the user provides a better one. Add concrete work items as the plan becomes clear:
 
 ```bash
 node <tool-root>/cli.js item add "<Project Name>" "Current Work" "Inspect the request handler"
 ```
 
-Research and checkpoint commands:
+Understanding and depth commands:
 
 ```bash
-node <tool-root>/cli.js research begin "<Project Name>" "<problem statement>"
-node <tool-root>/cli.js research add "<Project Name>" finding "<title>" "<explanation>" \
-  --source "<label>|<url or path>" --confidence high
-node <tool-root>/cli.js research list "<Project Name>"
-node <tool-root>/cli.js research confirm "<Project Name>"
-node <tool-root>/cli.js research skip "<Project Name>" "<reason>"
+node <tool-root>/cli.js understanding set "<Project Name>" "<summary>"
+node <tool-root>/cli.js understanding confirm "<Project Name>"
+node <tool-root>/cli.js understanding show "<Project Name>"
+node <tool-root>/cli.js project depth "<Project Name>" <concise|standard|deep>
 ```
 
 Keep the loop position synchronized:
 
 ```bash
 node <tool-root>/cli.js loop set "<Project Name>" Problem
-node <tool-root>/cli.js loop set "<Project Name>" Research
+node <tool-root>/cli.js loop set "<Project Name>" Understanding
 node <tool-root>/cli.js loop set "<Project Name>" "Inspection and Explanation"
 node <tool-root>/cli.js loop set "<Project Name>" Steps
 node <tool-root>/cli.js loop set "<Project Name>" Changes
@@ -209,5 +218,5 @@ If the dashboard server remains unavailable after running `ensure-server.sh`, co
 - State uncertainty instead of inventing requirements.
 - Explain errors as learning opportunities, not blame.
 - Keep the junior's current level in mind; adjust depth without condescension.
-- Do not hide uncertainty, skipped verification, skipped research, or unfinished work.
+- Do not hide uncertainty, skipped verification, or unfinished work.
 - Let the user choose to continue, pause, recap, or switch to autonomous execution.

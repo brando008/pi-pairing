@@ -243,23 +243,11 @@ test('deleting and moving an item update shared state', () => {
 test('setting a loop step accepts its label or one-based position', () => {
     const state = createProjectState()
     Commands.applyCommand(state, {
-        type: 'research.begin',
-        payload: { project: 'Campus', problem: 'Problem' }
+        type: 'understanding.set',
+        payload: { project: 'Campus', summary: 'A short summary.' }
     })
     Commands.applyCommand(state, {
-        type: 'research.add',
-        payload: {
-            project: 'Campus',
-            kind: 'finding',
-            title: 'Documented constraint',
-            explanation: 'The source explains the constraint.',
-            sources: [{ label: 'Spec', location: 'docs/spec.md' }],
-            confidence: 'high',
-            relatedItemIds: []
-        }
-    })
-    Commands.applyCommand(state, {
-        type: 'research.confirm',
+        type: 'understanding.confirm',
         payload: { project: 'Campus' }
     })
 
@@ -325,90 +313,65 @@ test('replacing shared state rejects non-empty or concurrently changed state', (
     )
 })
 
-test('beginning research creates a round for the resolved project', () => {
+test('setting an understanding summary updates the resolved project', () => {
     const state = createProjectState()
     const result = Commands.applyCommand(state, {
-        type: 'research.begin',
-        payload: { project: 'Campus', problem: 'Add attendance validation' }
+        type: 'understanding.set',
+        payload: {
+            project: 'Campus',
+            summary: 'Reject a missing student ID and keep valid records unchanged.'
+        }
     })
 
     const project = result.state.projects[0]
-    assert.equal(project.research.rounds.length, 1)
-    assert.equal(project.research.rounds[0].problem, 'Add attendance validation')
-    assert.equal(project.currentLoopStep, 1)
-    assert.match(result.message, /research round/i)
+    assert.equal(
+        project.understanding.summary,
+        'Reject a missing student ID and keep valid records unchanged.'
+    )
+    assert.equal(project.understanding.status, 'pending')
+    assert.match(result.message, /understanding/i)
 })
 
-test('research entries are added to the active round', () => {
+test('confirming understanding satisfies the gate and advances the loop', () => {
     const state = createProjectState()
     Commands.applyCommand(state, {
-        type: 'research.begin',
-        payload: { project: 'Campus', problem: 'Problem' }
+        type: 'understanding.set',
+        payload: { project: 'Campus', summary: 'A short summary.' }
     })
 
     const result = Commands.applyCommand(state, {
-        type: 'research.add',
-        payload: {
-            project: 'Campus',
-            kind: 'finding',
-            title: 'Append-only corrections',
-            explanation: 'The audit spec requires append-only corrections.',
-            sources: [{ label: 'Audit spec', location: 'docs/audit.md' }],
-            confidence: 'high',
-            relatedItemIds: []
-        }
-    })
-
-    const round = result.state.projects[0].research.rounds[0]
-    assert.equal(round.entries.length, 1)
-    assert.equal(round.entries[0].kind, 'finding')
-})
-
-test('confirming research satisfies the gate and advances the loop', () => {
-    const state = createProjectState()
-    Commands.applyCommand(state, {
-        type: 'research.begin',
-        payload: { project: 'Campus', problem: 'Problem' }
-    })
-    Commands.applyCommand(state, {
-        type: 'research.add',
-        payload: {
-            project: 'Campus',
-            kind: 'finding',
-            title: 'Documented constraint',
-            explanation: 'The source explains the constraint.',
-            sources: [{ label: 'Spec', location: 'https://example.com/spec' }],
-            confidence: 'high',
-            relatedItemIds: []
-        }
-    })
-
-    const result = Commands.applyCommand(state, {
-        type: 'research.confirm',
+        type: 'understanding.confirm',
         payload: { project: 'Campus' }
     })
 
     assert.equal(result.state.projects[0].currentLoopStep, 2)
+    assert.equal(result.state.projects[0].understanding.status, 'confirmed')
     assert.match(result.message, /confirmed/i)
 })
 
-test('skipping research records a reason and returns a warning', () => {
+test('the project depth command updates the teaching depth', () => {
     const state = createProjectState()
-    Commands.applyCommand(state, {
-        type: 'research.begin',
-        payload: { project: 'Campus', problem: 'Problem' }
-    })
-
     const result = Commands.applyCommand(state, {
-        type: 'research.skip',
-        payload: { project: 'Campus', reason: 'Incident review already done' }
+        type: 'project.depth',
+        payload: { project: 'Campus', depth: 'concise' }
     })
 
-    assert.match(result.result.warning, /research was skipped/i)
-    assert.equal(result.state.projects[0].research.rounds[0].status, 'skipped')
-    assert.equal(result.state.projects[0].currentLoopStep, 2)
+    assert.equal(result.state.projects[0].depth, 'concise')
+    assert.match(result.message, /concise/i)
 })
 
+test('legacy research commands explain the replacement', () => {
+    const state = createProjectState()
+
+    assert.throws(
+        () =>
+            Commands.applyCommand(state, {
+                type: 'research.begin',
+                payload: { project: 'Campus', problem: 'Problem' }
+            }),
+        /replaced by understanding commands/i
+    )
+})
 test('commands reject inherited object property names as command types', () => {
     const state = createProjectState()
 

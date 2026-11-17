@@ -1,8 +1,8 @@
 {
     "name": "pi-pairing",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "private": false,
-    "description": "A research-first pair-programming companion for Pi with a local dashboard, CLI, and installable skill.",
+    "description": "An understanding-first pair-programming companion for Pi with a local dashboard, CLI, and installable skill.",
     "license": "MIT",
     "repository": {
         "type": "git",

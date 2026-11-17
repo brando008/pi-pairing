@@ -30,7 +30,7 @@ function createItemState() {
 test('the initial state has a monotonic revision counter', () => {
     const state = Core.createInitialState()
 
-    assert.equal(state.version, 3)
+    assert.equal(state.version, 4)
     assert.equal(state.revision, 0)
 })
 
@@ -43,7 +43,7 @@ test('version one state is migrated with a zero revision', () => {
         })
     )
 
-    assert.equal(restored.version, 3)
+    assert.equal(restored.version, 4)
     assert.equal(restored.revision, 0)
 })
 
@@ -57,171 +57,154 @@ test('parsing rejects a negative revision', () => {
     )
 })
 
-function createResearchState() {
+test('a new project starts with standard depth and no understanding', () => {
     const state = Core.createInitialState()
     Core.addProject(state, 'project-1', 'Campus')
-    return state
-}
+    const project = state.projects[0]
 
-test('beginning research creates a round and moves the loop to Research', () => {
-    const state = createResearchState()
+    assert.equal(project.depth, 'standard')
+    assert.equal(project.understanding.summary, '')
+    assert.equal(project.understanding.status, 'empty')
+})
 
-    Core.beginResearch(
+test('setting an understanding summary marks it pending confirmation', () => {
+    const state = Core.createInitialState()
+    Core.addProject(state, 'project-1', 'Campus')
+
+    Core.setUnderstanding(
         state,
         'project-1',
-        'Add attendance validation',
-        'research-1'
+        'The endpoint should reject a missing student ID and keep valid records unchanged.'
     )
     const project = state.projects[0]
 
-    assert.equal(project.research.rounds.length, 1)
-    assert.equal(project.research.activeRoundId, 'research-1')
-    assert.equal(project.research.rounds[0].problem, 'Add attendance validation')
-    assert.equal(project.research.rounds[0].status, 'open')
-    assert.equal(project.currentLoopStep, 1)
-})
-
-test('research entries accept findings, questions, and decisions', () => {
-    const state = createResearchState()
-    Core.beginResearch(state, 'project-1', 'Problem', 'research-1')
-
-    Core.addResearchEntry(state, 'project-1', {
-        id: 'entry-1',
-        kind: 'finding',
-        title: 'Corrections must be append-only',
-        explanation: 'Audit requirements forbid mutation.',
-        sources: [{ label: 'Audit spec', location: 'docs/audit.md' }],
-        confidence: 'high',
-        relatedItemIds: []
-    })
-    Core.addResearchEntry(state, 'project-1', {
-        id: 'entry-2',
-        kind: 'question',
-        title: 'How long are records retained?',
-        explanation: 'Not answered yet.',
-        sources: [],
-        confidence: 'low',
-        relatedItemIds: []
-    })
-
-    const round = Core.getResearchRound(state.projects[0])
-
-    assert.equal(round.entries.length, 2)
-    assert.equal(round.entries[0].kind, 'finding')
-    assert.equal(round.entries[0].sources[0].location, 'docs/audit.md')
-    assert.equal(round.entries[1].kind, 'question')
-})
-
-test('a research finding requires at least one source', () => {
-    const state = createResearchState()
-    Core.beginResearch(state, 'project-1', 'Problem', 'research-1')
-
-    assert.throws(
-        () =>
-            Core.addResearchEntry(state, 'project-1', {
-                id: 'entry-1',
-                kind: 'finding',
-                title: 'Unsourced claim',
-                explanation: 'No evidence attached.',
-                sources: [],
-                confidence: 'medium',
-                relatedItemIds: []
-            }),
-        /source/i
+    assert.equal(
+        project.understanding.summary,
+        'The endpoint should reject a missing student ID and keep valid records unchanged.'
     )
+    assert.equal(project.understanding.status, 'pending')
+    assert.ok(project.understanding.updatedAt)
 })
 
-test('a no-research-needed entry requires an explanation', () => {
-    const state = createResearchState()
-    Core.beginResearch(state, 'project-1', 'Problem', 'research-1')
+test('confirming an understanding summary advances the loop', () => {
+    const state = Core.createInitialState()
+    Core.addProject(state, 'project-1', 'Campus')
+    Core.setUnderstanding(state, 'project-1', 'A short summary.')
 
-    assert.throws(
-        () =>
-            Core.addResearchEntry(state, 'project-1', {
-                id: 'entry-1',
-                kind: 'no-research-needed',
-                title: 'Routine local change',
-                explanation: '   ',
-                sources: [],
-                confidence: 'high',
-                relatedItemIds: []
-            }),
-        /explanation/i
-    )
-})
-
-test('confirming research requires a qualifying entry and advances the loop', () => {
-    const state = createResearchState()
-    Core.beginResearch(state, 'project-1', 'Problem', 'research-1')
-
-    assert.throws(
-        () => Core.confirmResearch(state, 'project-1'),
-        /finding|no-research/i
-    )
-
-    Core.addResearchEntry(state, 'project-1', {
-        id: 'entry-1',
-        kind: 'finding',
-        title: 'Documented constraint',
-        explanation: 'The audit spec requires append-only corrections.',
-        sources: [{ label: 'Audit spec', location: 'https://example.com/audit' }],
-        confidence: 'high',
-        relatedItemIds: []
-    })
-    Core.confirmResearch(state, 'project-1')
-
+    Core.confirmUnderstanding(state, 'project-1')
     const project = state.projects[0]
-    const round = Core.getResearchRound(project)
 
-    assert.equal(round.status, 'confirmed')
-    assert.ok(round.concludedAt)
+    assert.equal(project.understanding.status, 'confirmed')
+    assert.ok(project.understanding.confirmedAt)
     assert.equal(project.currentLoopStep, 2)
 })
 
-test('skipping research requires a reason and records a visible warning', () => {
-    const state = createResearchState()
-    Core.beginResearch(state, 'project-1', 'Problem', 'research-1')
+test('an understanding summary cannot be confirmed while blank', () => {
+    const state = Core.createInitialState()
+    Core.addProject(state, 'project-1', 'Campus')
 
     assert.throws(
-        () => Core.skipResearch(state, 'project-1', '   '),
-        /reason/i
+        () => Core.confirmUnderstanding(state, 'project-1'),
+        /summary/i
     )
-
-    const result = Core.skipResearch(state, 'project-1', 'Existing incident review')
-    const project = state.projects[0]
-    const round = Core.getResearchRound(project)
-
-    assert.equal(result.warning, 'Research was skipped: Existing incident review')
-    assert.equal(round.status, 'skipped')
-    assert.equal(round.reason, 'Existing incident review')
-    assert.equal(round.entries[0].kind, 'skipped')
-    assert.equal(project.currentLoopStep, 2)
 })
 
-test('the loop cannot advance past Research before the gate is satisfied', () => {
-    const state = createResearchState()
-    Core.beginResearch(state, 'project-1', 'Problem', 'research-1')
+test('the loop cannot advance past Understanding before confirmation', () => {
+    const state = Core.createInitialState()
+    Core.addProject(state, 'project-1', 'Campus')
+    Core.setUnderstanding(state, 'project-1', 'A short summary.')
 
     assert.throws(
         () => Core.setLoopStep(state, 'project-1', 2),
-        /research/i
+        /understanding/i
     )
 
-    Core.addResearchEntry(state, 'project-1', {
-        id: 'entry-1',
-        kind: 'no-research-needed',
-        title: 'Routine local change',
-        explanation: 'The change only touches one local module.',
-        sources: [],
-        confidence: 'high',
-        relatedItemIds: []
-    })
-    Core.confirmResearch(state, 'project-1')
-
+    Core.confirmUnderstanding(state, 'project-1')
     assert.equal(state.projects[0].currentLoopStep, 2)
 })
 
-test('version two state migrates into an open research round', () => {
+test('project depth can be concise, standard, or deep', () => {
+    const state = Core.createInitialState()
+    Core.addProject(state, 'project-1', 'Campus')
+
+    for (const depth of ['concise', 'standard', 'deep']) {
+        Core.setProjectDepth(state, 'project-1', depth)
+        assert.equal(state.projects[0].depth, depth)
+    }
+})
+
+test('unknown project depth is rejected', () => {
+    const state = Core.createInitialState()
+    Core.addProject(state, 'project-1', 'Campus')
+
+    assert.throws(
+        () => Core.setProjectDepth(state, 'project-1', 'exhaustive'),
+        /depth/i
+    )
+})
+
+test('version three research data migrates into an understanding summary', () => {
+    const legacyState = {
+        version: 3,
+        revision: 7,
+        activeProjectId: 'project-1',
+        projects: [
+            {
+                id: 'project-1',
+                name: 'Campus',
+                currentLoopStep: 3,
+                activeChecklistId: null,
+                checklists: [],
+                research: {
+                    activeRoundId: 'round-1',
+                    rounds: [
+                        {
+                            id: 'round-1',
+                            problem: 'How should corrections work?',
+                            status: 'confirmed',
+                            startedAt: '2026-01-01T00:00:00.000Z',
+                            concludedAt: '2026-01-01T00:05:00.000Z',
+                            reason: '',
+                            entries: [
+                                {
+                                    id: 'entry-1',
+                                    kind: 'finding',
+                                    title: 'Corrections are append-only',
+                                    explanation: 'The audit specification forbids mutation.',
+                                    sources: [
+                                        {
+                                            label: 'Audit spec',
+                                            location: 'docs/audit.md'
+                                        }
+                                    ],
+                                    confidence: 'high',
+                                    relatedItemIds: [],
+                                    createdAt: '2026-01-01T00:04:00.000Z'
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    const restored = Core.parseState(JSON.stringify(legacyState))
+    const project = restored.projects[0]
+
+    assert.equal(restored.version, 4)
+    assert.equal(project.depth, 'standard')
+    assert.match(project.understanding.summary, /How should corrections work\?/)
+    assert.match(project.understanding.summary, /Corrections are append-only/)
+    assert.doesNotMatch(
+        project.understanding.summary,
+        /audit specification forbids mutation/
+    )
+    assert.equal(project.understanding.status, 'confirmed')
+    assert.equal(project.currentLoopStep, 3)
+})
+
+test('version two state migrates into an empty understanding', () => {
     const legacyState = {
         version: 2,
         revision: 4,
@@ -240,34 +223,32 @@ test('version two state migrates into an open research round', () => {
     const restored = Core.parseState(JSON.stringify(legacyState))
     const project = restored.projects[0]
 
-    assert.equal(restored.version, 3)
+    assert.equal(restored.version, 4)
     assert.equal(project.currentLoopStep, 1)
-    assert.equal(project.research.rounds.length, 1)
-    assert.equal(project.research.rounds[0].status, 'open')
-    assert.equal(project.research.activeRoundId, project.research.rounds[0].id)
+    assert.equal(project.depth, 'standard')
+    assert.equal(project.understanding.status, 'empty')
 })
 
-test('parsing rejects invalid research data', () => {
-    const state = createResearchState()
-    Core.beginResearch(state, 'project-1', 'Problem', 'research-1')
+test('parsing rejects invalid depth and understanding data', () => {
+    const state = Core.createInitialState()
+    Core.addProject(state, 'project-1', 'Campus')
 
-    const invalidKind = Core.parseState(Core.serializeState(state))
-    invalidKind.projects[0].research.rounds[0].entries.push({
-        id: 'entry-1',
-        kind: 'invented',
-        title: 'Bad',
-        explanation: 'Bad',
-        sources: [],
-        confidence: 'high',
-        relatedItemIds: []
-    })
+    const invalidDepth = Core.parseState(Core.serializeState(state))
+    invalidDepth.projects[0].depth = 'exhaustive'
 
     assert.throws(
-        () => Core.parseState(Core.serializeState(invalidKind)),
-        /research/i
+        () => Core.parseState(Core.serializeState(invalidDepth)),
+        /depth/i
+    )
+
+    const invalidUnderstanding = Core.parseState(Core.serializeState(state))
+    invalidUnderstanding.projects[0].understanding.status = 'invented'
+
+    assert.throws(
+        () => Core.parseState(Core.serializeState(invalidUnderstanding)),
+        /understanding/i
     )
 })
-
 test('adding the first project makes it active', () => {
     const state = Core.createInitialState()
     const result = Core.addProject(state, 'project-1', 'Ignite')
@@ -584,7 +565,7 @@ test('the pairing loop contains the eight fixed steps in order', () => {
         Core.LOOP_STEPS.map((step) => step.label),
         [
             'Problem',
-            'Research',
+            'Understanding',
             'Inspection and Explanation',
             'Steps',
             'Changes',
@@ -597,17 +578,8 @@ test('the pairing loop contains the eight fixed steps in order', () => {
 
 test('setting a loop step updates only the selected project', () => {
     const state = createTwoProjectState()
-    Core.beginResearch(state, 'project-2', 'Problem', 'research-1')
-    Core.addResearchEntry(state, 'project-2', {
-        id: 'entry-1',
-        kind: 'finding',
-        title: 'Documented constraint',
-        explanation: 'The source explains the constraint.',
-        sources: [{ label: 'Spec', location: 'docs/spec.md' }],
-        confidence: 'high',
-        relatedItemIds: []
-    })
-    Core.confirmResearch(state, 'project-2')
+    Core.setUnderstanding(state, 'project-2', 'A short summary.')
+    Core.confirmUnderstanding(state, 'project-2')
 
     const result = Core.setLoopStep(state, 'project-2', 3)
 
