@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="description"
+            content="A local-first pairing loop and project checklist companion."
+        />
+        <title>Pi Pairing</title>
+        <link
+            rel="icon"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b4bdb'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='40' fill='white'%3Eπ%3C/text%3E%3C/svg%3E"
+        />
+        <link rel="stylesheet" href="styles.css" />
+        <script defer src="core.js"></script>
+        <script defer src="app.js"></script>
+    </head>
+    <body>
+        <a class="skip-link" href="#main-content">Skip to checklists</a>
+
+        <div class="app-shell">
+            <header class="app-header">
+                <div class="brand">
+                    <span class="brand-mark" aria-hidden="true">π</span>
+                    <div>
+                        <h1>Pi Pairing</h1>
+                        <p>Keep the loop visible. Keep the work visible.</p>
+                    </div>
+                </div>
+
+                <div
+                    class="project-controls"
+                    role="group"
+                    aria-label="Project controls"
+                >
+                    <label class="field project-field" for="project-select">
+                        <span>Project</span>
+                        <select id="project-select"></select>
+                    </label>
+
+                    <button id="add-project-button" class="button button-primary" type="button">
+                        Add project
+                    </button>
+                    <button id="rename-project-button" class="button" type="button">
+                        Rename
+                    </button>
+                    <button
+                        id="delete-project-button"
+                        class="button button-danger-quiet"
+                        type="button"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </header>
+
+            <div
+                id="status-message"
+                class="status-message"
+                role="status"
+                aria-live="polite"
+            ></div>
+
+            <div class="workspace">
+                <aside class="panel loop-panel" aria-labelledby="loop-title">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">Pi’s guide</p>
+                            <h2 id="loop-title">Pairing Loop</h2>
+                        </div>
+                        <span id="loop-position" class="pill">Step 1 of 8</span>
+                    </div>
+
+                    <p class="panel-intro">
+                        Select the step you are currently working through. The
+                        position is saved separately for every project.
+                    </p>
+
+                    <ol id="loop-steps" class="loop-steps" role="list"></ol>
+
+                    <p id="loop-gate-hint" class="loop-gate-hint" hidden>
+                        Research must be confirmed or explicitly skipped
+                        before the loop can move past Research.
+                    </p>
+
+                    <div class="loop-prompt" aria-live="polite">
+                        <span class="loop-prompt-label">Current focus</span>
+                        <p id="loop-prompt-text"></p>
+                    </div>
+                </aside>
+
+                <div class="work-column">
+                    <section
+                        class="panel research-panel"
+                        aria-labelledby="research-title"
+                    >
+                        <div class="panel-heading">
+                            <div>
+                                <p class="eyebrow">Before we build</p>
+                                <h2 id="research-title">Research</h2>
+                            </div>
+                            <span id="research-status" class="pill">No round</span>
+                        </div>
+
+                        <p class="panel-intro">
+                            Pi researches the problem before planning the
+                            change. Record findings and sources, then confirm
+                            the checkpoint or skip it with a reason.
+                        </p>
+
+                        <div
+                            id="research-warning"
+                            class="research-warning"
+                            role="status"
+                            hidden
+                        ></div>
+
+                        <form
+                            id="research-begin-form"
+                            class="research-begin-form"
+                        >
+                            <label class="field" for="research-problem-input">
+                                <span>Problem to research</span>
+                                <input
+                                    id="research-problem-input"
+                                    type="text"
+                                    autocomplete="off"
+                                    placeholder="What do we need to understand?"
+                                />
+                            </label>
+                            <button
+                                id="research-begin-button"
+                                class="button button-primary"
+                                type="submit"
+                            >
+                                Begin research
+                            </button>
+                        </form>
+
+                        <div id="research-round" class="research-round" hidden>
+                            <p id="research-round-problem" class="research-round-problem"></p>
+
+                            <div class="research-actions" role="group" aria-label="Research checkpoint actions">
+                                <button
+                                    id="research-confirm-button"
+                                    class="button button-primary"
+                                    type="button"
+                                >
+                                    Confirm research
+                                </button>
+                                <button
+                                    id="research-skip-button"
+                                    class="button button-danger-quiet"
+                                    type="button"
+                                >
+                                    Skip research
+                                </button>
+                                <button
+                                    id="research-new-round-button"
+                                    class="button"
+                                    type="button"
+                                >
+                                    New round
+                                </button>
+                            </div>
+
+                            <ul
+                                id="research-entries"
+                                class="research-entries"
+                                role="list"
+                            ></ul>
+
+                            <form
+                                id="research-add-form"
+                                class="research-add-form"
+                            >
+                                <div class="research-add-grid">
+                                    <label class="field" for="research-kind">
+                                        <span>Kind</span>
+                                        <select id="research-kind">
+                                            <option value="finding">Finding</option>
+                                            <option value="question">Question</option>
+                                            <option value="decision">Decision</option>
+                                            <option value="no-research-needed">
+                                                No research needed
+                                            </option>
+                                        </select>
+                                    </label>
+
+                                    <label class="field" for="research-confidence">
+                                        <span>Confidence</span>
+                                        <select id="research-confidence">
+                                            <option value="high">High</option>
+                                            <option value="medium" selected>
+                                                Medium
+                                            </option>
+                                            <option value="low">Low</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <label class="field" for="research-title-input">
+                                    <span>Title</span>
+                                    <input
+                                        id="research-title-input"
+                                        type="text"
+                                        autocomplete="off"
+                                        placeholder="What did you learn?"
+                                    />
+                                </label>
+
+                                <label class="field" for="research-explanation-input">
+                                    <span>Explanation</span>
+                                    <textarea
+                                        id="research-explanation-input"
+                                        rows="3"
+                                        placeholder="What does this mean for the work?"
+                                    ></textarea>
+                                </label>
+
+                                <div class="research-add-grid">
+                                    <label class="field" for="research-source-label">
+                                        <span>Source label</span>
+                                        <input
+                                            id="research-source-label"
+                                            type="text"
+                                            autocomplete="off"
+                                            placeholder="Audit spec"
+                                        />
+                                    </label>
+
+                                    <label class="field" for="research-source-location">
+                                        <span>Source URL or path</span>
+                                        <input
+                                            id="research-source-location"
+                                            type="text"
+                                            autocomplete="off"
+                                            placeholder="https:// or docs/"
+                                        />
+                                    </label>
+                                </div>
+
+                                <button
+                                    id="research-add-button"
+                                    class="button button-primary"
+                                    type="submit"
+                                >
+                                    Add research entry
+                                </button>
+                            </form>
+                        </div>
+                    </section>
+
+                <main
+                    id="main-content"
+                    class="panel checklist-panel"
+                    tabindex="-1"
+                >
+                    <section aria-labelledby="checklist-title">
+                        <div class="panel-heading checklist-heading">
+                            <div>
+                                <p class="eyebrow">Project work</p>
+                                <h2 id="checklist-title">Checklists</h2>
+                            </div>
+                            <span
+                                id="item-count"
+                                class="pill"
+                                aria-live="polite"
+                            >
+                                0 of 0 complete
+                            </span>
+                        </div>
+
+                        <div
+                            class="checklist-controls"
+                            role="group"
+                            aria-label="Checklist controls"
+                        >
+                            <label class="field checklist-field" for="checklist-select">
+                                <span>Checklist</span>
+                                <select id="checklist-select"></select>
+                            </label>
+
+                            <button
+                                id="add-checklist-button"
+                                class="button button-primary"
+                                type="button"
+                            >
+                                Add checklist
+                            </button>
+                            <button id="rename-checklist-button" class="button" type="button">
+                                Rename
+                            </button>
+                            <button
+                                id="delete-checklist-button"
+                                class="button button-danger-quiet"
+                                type="button"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="items-section" aria-labelledby="active-checklist-title">
+                        <div class="items-heading">
+                            <h3 id="active-checklist-title">No checklist selected</h3>
+                        </div>
+
+                        <ul
+                            id="checklist-items"
+                            class="checklist-items"
+                            role="list"
+                        ></ul>
+
+                        <p id="checklist-empty" class="empty-state">
+                            Add a checklist to start tracking project work.
+                        </p>
+                    </section>
+
+                    <form id="add-item-form" class="add-item-form">
+                        <label class="field" for="add-item-input">
+                            <span>New checklist item</span>
+                            <input
+                                id="add-item-input"
+                                name="item"
+                                type="text"
+                                autocomplete="off"
+                                placeholder="What needs to be done?"
+                            />
+                        </label>
+                        <button
+                            id="add-item-submit-button"
+                            class="button button-primary"
+                            type="submit"
+                        >
+                            Add item
+                        </button>
+                    </form>
+                </main>
+                </div>
+            </div>
+        </div>
+
+        <noscript>
+            <p class="noscript-message">
+                This tool requires JavaScript to save and update your checklists.
+            </p>
+        </noscript>
+    </body>
+</html>

@@ -1,0 +1,31 @@
+name: Feature request
+
+description: Suggest an improvement to Pi Pairing
+
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the situation that makes the current workflow difficult.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+    validations:
+      required: false
+  - type: checkboxes
+    id: dependencies
+    attributes:
+      label: Constraints
+      options:
+        - label: This must keep the tool dependency-free.
+        - label: This must keep the eight-step loop and research gate intact.

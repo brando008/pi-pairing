@@ -1,0 +1,51 @@
+{
+    "name": "pi-pairing",
+    "version": "1.0.0",
+    "private": false,
+    "description": "A research-first pair-programming companion for Pi with a local dashboard, CLI, and installable skill.",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/brando008/pi-pairing.git"
+    },
+    "bugs": {
+        "url": "https://github.com/brando008/pi-pairing/issues"
+    },
+    "homepage": "https://github.com/brando008/pi-pairing#readme",
+    "keywords": [
+        "pi",
+        "pair-programming",
+        "coding-agent",
+        "research",
+        "checklist",
+        "developer-tools"
+    ],
+    "engines": {
+        "node": ">=18"
+    },
+    "scripts": {
+        "start": "node server.js",
+        "pairing": "node cli.js",
+        "test": "node scripts/run-tests.js",
+        "test:browser": "node browser-acceptance.js"
+    },
+    "pi": {
+        "skills": [
+            "skills"
+        ]
+    },
+    "files": [
+        "app.js",
+        "browser-acceptance.js",
+        "cli.js",
+        "commands.js",
+        "core.js",
+        "docs",
+        "index.html",
+        "scripts",
+        "server.js",
+        "skills",
+        "state-store.js",
+        "styles.css"
+    ]
+}
