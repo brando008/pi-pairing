@@ -82,7 +82,7 @@ async function stopServer() {
 }
 
 async function getPageTarget() {
-    for (let attempt = 0; attempt < 60; attempt += 1) {
+    for (let attempt = 0; attempt < 300; attempt += 1) {
         try {
             const response = await fetch(
                 `http://127.0.0.1:${DEBUG_PORT}/json/list`
@@ -90,7 +90,9 @@ async function getPageTarget() {
             const targets = await response.json()
             const target = targets.find(
                 (candidate) =>
-                    candidate.type === 'page' && candidate.url.startsWith(APP_URL)
+                    candidate.type === 'page' &&
+                    (candidate.url.startsWith(APP_URL) ||
+                        candidate.url === 'about:blank')
             )
 
             if (target) {
@@ -227,6 +229,8 @@ async function main() {
         [
             '--headless=new',
             '--disable-gpu',
+            '--no-sandbox',
+            '--disable-dev-shm-usage',
             '--no-first-run',
             '--no-default-browser-check',
             `--user-data-dir=${PROFILE_DIRECTORY}`,
@@ -235,6 +239,14 @@ async function main() {
         ],
         { stdio: ['ignore', 'ignore', 'pipe'] }
     )
+
+    chromeProcess.stderr.on('data', (chunk) => {
+        const message = chunk.toString()
+
+        if (/error|failed/i.test(message)) {
+            console.warn(`[chrome] ${message.trim()}`)
+        }
+    })
 
     const target = await getPageTarget()
     const socket = new WebSocket(target.webSocketDebuggerUrl)
@@ -249,6 +261,7 @@ async function main() {
     await send('Page.enable')
     await send('Runtime.enable')
     await send('Log.enable')
+    await send('Page.navigate', { url: APP_URL })
     await waitFor(
         `Boolean(document.getElementById('project-select') && window.PairingCore)`
     )
