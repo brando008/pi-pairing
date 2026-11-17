@@ -496,19 +496,36 @@ main()
 
             if (processToStop.exitCode === null) {
                 processToStop.kill('SIGTERM')
-                await new Promise((resolve) =>
-                    processToStop.once('exit', resolve)
-                )
+
+                await new Promise((resolve) => {
+                    const forceKill = setTimeout(() => {
+                        processToStop.kill('SIGKILL')
+                        resolve()
+                    }, 2000)
+
+                    processToStop.once('exit', () => {
+                        clearTimeout(forceKill)
+                        resolve()
+                    })
+                })
             }
         }
 
         await stopServer()
-        fs.rmSync(PROFILE_DIRECTORY, {
-            recursive: true,
-            force: true,
-            maxRetries: 5,
-            retryDelay: 100
-        })
+
+        try {
+            fs.rmSync(PROFILE_DIRECTORY, {
+                recursive: true,
+                force: true,
+                maxRetries: 10,
+                retryDelay: 300
+            })
+        } catch (error) {
+            console.warn(
+                `Could not remove the temporary browser profile: ${error.message}`
+            )
+        }
+
         fs.rmSync(STATE_FILE, { force: true })
         fs.rmSync(`${STATE_FILE}.corrupt-backup`, { force: true })
     })
