@@ -1,6 +1,6 @@
 # Pi Pairing
 
-**A research-first pair-programming companion for Pi.** It keeps a visible seven- (now eight-) step engineering loop, a sourced research area, and your project checklists in one local dashboard that Pi and you can both update.
+**A research-first pair-programming companion for Pi.** It keeps a visible eight step engineering loop, a sourced research area, and your project checklists in one local dashboard that Pi and you can both update.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
