@@ -1,12 +1,29 @@
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
+const net = require('node:net')
 const os = require('node:os')
 const path = require('node:path')
 const { spawn, spawnSync } = require('node:child_process')
 
 const ROOT = __dirname
 const PORT = Number(process.env.PI_PAIRING_BROWSER_PORT) || 4183
-const DEBUG_PORT = Number(process.env.PI_PAIRING_BROWSER_DEBUG_PORT) || 9333
+let debugPort = Number(process.env.PI_PAIRING_BROWSER_DEBUG_PORT) || 0
+
+async function findFreePort() {
+    if (debugPort) {
+        return debugPort
+    }
+
+    return new Promise((resolve, reject) => {
+        const probe = net.createServer()
+
+        probe.once('error', reject)
+        probe.listen(0, '127.0.0.1', () => {
+            const { port } = probe.address()
+            probe.close(() => resolve(port))
+        })
+    })
+}
 const APP_URL = `http://127.0.0.1:${PORT}/index.html`
 const STATE_FILE = path.join(
     os.tmpdir(),
@@ -85,7 +102,7 @@ async function getPageTarget() {
     for (let attempt = 0; attempt < 300; attempt += 1) {
         try {
             const response = await fetch(
-                `http://127.0.0.1:${DEBUG_PORT}/json/list`
+                `http://127.0.0.1:${debugPort}/json/list`
             )
             const targets = await response.json()
             const target = targets.find(
@@ -213,6 +230,8 @@ function createClient(socket) {
 }
 
 async function main() {
+    debugPort = await findFreePort()
+
     const chrome = chromeExecutable()
 
     if (!chrome) {
@@ -234,7 +253,7 @@ async function main() {
             '--no-first-run',
             '--no-default-browser-check',
             `--user-data-dir=${PROFILE_DIRECTORY}`,
-            `--remote-debugging-port=${DEBUG_PORT}`,
+            `--remote-debugging-port=${debugPort}`,
             APP_URL
         ],
         { stdio: ['ignore', 'ignore', 'pipe'] }
