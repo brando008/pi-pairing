@@ -64,6 +64,10 @@ test('the repository skill references the guide and canonical loop', () => {
     assert.match(skill, /notes file/i)
     assert.match(skill, /understanding set/)
     assert.match(skill, /project depth/i)
+    assert.match(skill, /Teach forward, not sideways/i)
+    assert.match(guide, /Teach forward, not sideways/i)
+    assert.match(skill, /Revisit: <question>/)
+    assert.match(guide, /Revisit: why validation belongs in the handler/)
 
     for (const label of [
         'Problem',

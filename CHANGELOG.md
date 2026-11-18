@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-11-17
+
+### Changed
+
+- Added the **teach forward, not sideways** rule to the skill and session guide.
+  When an explanation does not land, Pi now rephrases once, gives one concrete
+  example, continues the task, and carries the concept forward as a `Revisit:`
+  checklist item instead of opening a rabbit hole.
+- Clarified when Pi should still pause to teach deeply: when the user asks,
+  when the misunderstanding would cause incorrect or unsafe code, or when it
+  involves data loss, migrations, or security.
+- The recap now explicitly mentions concepts that were carried forward and
+  whether they came up again during the session.
+
 ## [1.1.0] - 2026-11-17
 
 ### Changed

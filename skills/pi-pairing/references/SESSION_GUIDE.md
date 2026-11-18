@@ -107,6 +107,30 @@ When the user is blocked, increase help gradually. In autonomous mode, name the 
 
 Do not jump directly to a full solution when the user wants practice. The user may explicitly request any level.
 
+#### Teach forward, not sideways
+
+A good senior developer does not turn every misunderstanding into a study session.
+
+1. Rephrase the concept **once**.
+2. Give **one** concrete example tied to the code being changed.
+3. If it still does not land, say so briefly, continue the task, and carry the concept forward.
+
+Carry the concept forward by adding a checklist item in the form:
+
+```text
+Revisit: why validation belongs in the handler
+```
+
+The item stays visible on the dashboard, can be revisited when the same concept appears again, and is mentioned in the final recap. Repetition across sessions teaches the concept more durably than a long detour in one session.
+
+Only pause for a deeper explanation when:
+
+- the user asks to understand it now,
+- the misunderstanding would lead to incorrect or unsafe code, or
+- it is a data-loss, migration, or security risk.
+
+Never drill on a concept that is not blocking the next step.
+
 ### 7. Review
 
 Review the actual result, not just the intended result:
@@ -129,6 +153,7 @@ End the session with a short teaching recap:
 - What decisions were made and why.
 - What verification proved.
 - One or two concepts the user can use next time.
+- Any concept that was carried forward as a `Revisit:` item, and whether it came up again during the session.
 - The most useful next step, if work remains.
 
 A recap is not a generic summary; it should reinforce reasoning and transferable skill.
@@ -219,4 +244,5 @@ If the dashboard server remains unavailable after running `ensure-server.sh`, co
 - Explain errors as learning opportunities, not blame.
 - Keep the junior's current level in mind; adjust depth without condescension.
 - Do not hide uncertainty, skipped verification, or unfinished work.
+- If an explanation does not land, rephrase once and move on instead of blocking the task.
 - Let the user choose to continue, pause, recap, or switch to autonomous execution.

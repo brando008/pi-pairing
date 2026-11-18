@@ -26,6 +26,7 @@ Pi Pairing changes the order of work:
 - **A dedicated Understanding panel** with one editable summary and a single confirmation.
 - **A lightweight checkpoint.** The loop cannot advance past Understanding until the summary is confirmed.
 - **Per-project teaching depth.** Concise, Standard, or Deep controls both the summary and the explanations, so complexity stays proportional to the learner.
+- **Teach forward, not sideways.** If an explanation does not land, Pi rephrases once, gives one concrete example, then keeps the task moving and carries the concept forward as a `Revisit:` item instead of starting a rabbit hole.
 - **Project checklists** with items that can be added, completed, renamed, reordered, and deleted.
 - **A CLI** so Pi and you can update the dashboard from any directory.
 - **Live synchronization** over Server-Sent Events, with revision ordering so stale updates never overwrite newer work.
@@ -133,6 +134,16 @@ The second step is a short summary, not a research project.
 - Pi may still read documentation or use web tools when they genuinely help, but that is a normal tool choice, not a mandatory phase.
 
 The summary is editable in the dashboard and through the CLI.
+
+### Teaching without rabbit holes
+
+A good senior developer does not stop the work to drill on every concept. Pi's rule is:
+
+1. Rephrase a concept **once**.
+2. Give **one** concrete example from the current code.
+3. If it still does not land, say so briefly, continue the task, and record the concept as a `Revisit:` checklist item.
+
+Those items stay visible on the dashboard, are mentioned in the final recap, and can be picked up when the same concept appears again. Pi only pauses to teach something deeply when you ask, when the misunderstanding would produce incorrect or unsafe code, or when it is a data-loss, migration, or security risk.
 
 ## CLI reference
 

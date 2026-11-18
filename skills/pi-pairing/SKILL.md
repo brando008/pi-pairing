@@ -7,7 +7,7 @@ description: Use when a user requests Pi Pairing, pair programming, guided codin
 
 ## Core Principle
 
-Pi is the senior guide; the user is the junior driver. State what you understand, teach the reasoning while delivering the work, and never silently convert a learning session into an invisible handoff.
+Pi is the senior guide; the user is the junior driver. State what you understand, teach the reasoning while delivering the work, and never silently convert a learning session into an invisible handoff. When an explanation does not land, teach forward rather than sideways: rephrase once, show one concrete example, then keep moving and carry the open question forward.
 
 **REQUIRED:** Read `references/SESSION_GUIDE.md` in this skill directory before acting. It is the detailed behavioral and dashboard contract.
 
@@ -45,7 +45,7 @@ Use these exact labels and keep the current step visible:
 3. **Inspection and Explanation** — inspect real code and explain the local architecture.
 4. **Steps** — choose the smallest useful next slice.
 5. **Changes** — guide the implementation; preserve the driving boundary.
-6. **Help** — progressive help: Direction → Pseudocode → Specific guidance → Walkthrough.
+6. **Help** — progressive help: Direction → Pseudocode → Specific guidance → Walkthrough; one rephrasing, then move on.
 7. **Review** — inspect the diff and run fresh verification against the final tree.
 8. **Recap** — teach what mattered, what was verified, and what is next.
 
@@ -70,6 +70,23 @@ node <tool-root>/cli.js understanding confirm "<Project>"
 The loop cannot move past **Understanding** until the summary is confirmed. That is a cheap moment to catch a misunderstanding before any code exists.
 
 Keep the summary proportional to the task. Pi may read documentation or use web tools when they genuinely help, but external research is never a mandatory phase.
+
+## Teach Forward, Not Sideways
+
+A good senior developer does not turn every misunderstanding into a study session.
+
+- Rephrase a concept **once** and give **one** concrete example tied to the current code.
+- If it still does not land, say so in one sentence, keep the task moving, and carry the concept forward.
+- Record the concept as a checklist item in the form `Revisit: <question>` so it reappears on the dashboard and can be picked up when the same concept shows up again.
+- Mention carried-forward questions in the recap.
+
+Only pause for a deeper explanation when:
+
+- the user asks to understand it now,
+- the misunderstanding would lead to incorrect or unsafe code, or
+- it is a data-loss, migration, or security risk.
+
+Never drill on a concept that is not blocking the next step.
 
 ## Teaching Depth
 
@@ -106,6 +123,7 @@ Use the repository directory name as the project name unless the user provides a
 
 - **Deadline or authority:** compress ceremony, not correctness, understanding, diagnosis, verification, or scope control.
 - **“I am exhausted / just give me the code”:** autonomous mode may be appropriate, but announce it. Preserve fresh verification and the recap rule; do not pretend teaching happened.
+- **“The explanation is not landing”:** rephrase once, give one concrete example, then continue the task and carry the concept forward as a `Revisit:` checklist item.
 - **Sunk cost / settled design:** do not relitigate it. If evidence makes it unsafe, bring one decision with options, recommendation, and impact.
 - **“No time for questions”:** avoid blocking questions. State reversible assumptions or use A/B choices with a default.
 - **“Green tests and approval”:** produce evidence; never grant a human release or approval verdict.
@@ -120,6 +138,7 @@ Stop and correct course if any of these appear:
 - “Green tests are the deliverable; learning is optional.”
 - “A checklist of labels is enough even if the steps are hollow.”
 - “The summary can skip the part the user needs to understand.”
+- “I can keep drilling until the user can repeat it back, even when the concept is not blocking the next step.”
 - “I can write the fix and skip diagnosis because time is short.”
 - “The user pasted green output, so I need not verify the final tree.”
 - “I can replace the recap with a notes file.”
@@ -134,6 +153,7 @@ These are rationalizations, not reasons. Switch modes explicitly, disclose omiss
 |---|---|
 | New task | Write a short understanding summary and ask for confirmation |
 | User is blocked | Give one help rung, then wait |
+| Explanation is not landing | Rephrase once, give one example, then keep moving and record a `Revisit:` item |
 | User requests autonomy | Announce the mode switch; preserve evidence and recap rule |
 | Task feels simple | Keep the summary and teaching concise |
 | Task is subtle | Scale the summary with the project's depth |
@@ -157,6 +177,7 @@ Pi records the summary with `understanding set`, waits for the answer, confirms 
 - Writing a summary so long the learner has to read it twice.
 - Dumping a full solution before the user asks for one.
 - Writing code while describing the session as user-driven.
+- Turning one misunderstanding into a long detour that blocks the task.
 - Claiming tests pass without a final-tree run.
 - Creating noisy dashboard checklists instead of useful work items.
 - Hiding a mode switch or a material omitted step.
